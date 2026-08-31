@@ -47,6 +47,15 @@ app.get('/', (req, res) => {
   res.send('<h3>WhatsApp NitroStack Widgets Dev Server (Port 3001)</h3>');
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✨ Widget Dev Server running on http://localhost:${PORT}`);
 });
+
+server.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    console.log(`ℹ️ Port ${PORT} is already in use; reusing existing widget server.`);
+  } else {
+    console.error('Widget dev server error:', err.message);
+  }
+});
+
