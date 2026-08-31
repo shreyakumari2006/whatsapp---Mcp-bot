@@ -1,0 +1,41 @@
+{
+  "$schema": "https://nitrostack.ai/schemas/config.json",
+  "name": "whatsapp-mcp-server",
+  "version": "1.0.0",
+  "runtime": {
+    "type": "nodejs",
+    "version": "22",
+    "entrypoint": "dist/index.js"
+  },
+  "deployment": {
+    "target": "nitrocloud",
+    "region": "us-east-1",
+    "healthCheck": {
+      "livenessPath": "/healthz",
+      "readinessPath": "/readyz",
+      "port": 3000
+    },
+    "staticAssets": [
+      {
+        "route": "/widgets",
+        "directory": "src/widgets/out"
+      },
+      {
+        "route": "/",
+        "directory": "frontend/dist"
+      }
+    ],
+    "env": {
+      "NODE_ENV": "production",
+      "PORT": "3000",
+      "PUPPETEER_SKIP_CHROMIUM_DOWNLOAD": "true",
+      "PUPPETEER_EXECUTABLE_PATH": "/usr/bin/chromium"
+    }
+  },
+  "widgets": {
+    "enabled": true,
+    "manifest": "src/widgets/widget-manifest.json",
+    "dist": "src/widgets/out",
+    "devPort": 3001
+  }
+}

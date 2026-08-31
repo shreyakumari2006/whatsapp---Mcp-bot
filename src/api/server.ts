@@ -258,10 +258,37 @@ export function createApiServer(): express.Express {
 
   // Serve static assets for widgets
   app.use('/widgets', express.static(widgetsOutDir));
+
+  // Serve compiled React frontend assets from frontend/dist (or ./public in container runtime)
+  const frontendDistDir = fs.existsSync(path.join(process.cwd(), 'frontend/dist'))
+    ? path.join(process.cwd(), 'frontend/dist')
+    : path.join(process.cwd(), 'public');
+
+  if (fs.existsSync(frontendDistDir)) {
+    app.use(express.static(frontendDistDir));
+  }
+
+  // Also serve raw widgets out dir
   app.use(express.static(widgetsOutDir));
 
-  // Serve Embedded Live Dashboard
-  app.get('/', (req: Request, res: Response) => {
+  // Unified SPA Catch-All Route for Frontend & Dashboard
+  app.get('*', (req: Request, res: Response, next) => {
+    // Skip API, SSE, health, and widget routes
+    if (
+      req.path.startsWith('/api') || 
+      req.path === '/healthz' || 
+      req.path === '/readyz' || 
+      req.path.startsWith('/widgets')
+    ) {
+      return next();
+    }
+
+    const frontendIndex = path.join(frontendDistDir, 'index.html');
+    if (fs.existsSync(frontendIndex)) {
+      return res.sendFile(frontendIndex);
+    }
+
+    // Embedded dashboard fallback
     res.setHeader('Content-Type', 'text/html');
     res.send(renderDashboardHtml());
   });
