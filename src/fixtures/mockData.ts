@@ -156,6 +156,17 @@ export const MOCK_AUTO_REPLY_RULES: AutoReplyRule[] = [
     enabled: true,
     matchCount: 22,
     createdAt: Date.now() - 1000 * 60 * 60 * 24 * 10
+  },
+  {
+    id: 'rule_birthday_wishes',
+    name: 'Birthday Wishes Responder',
+    triggerPattern: 'birthday',
+    triggerType: 'contains',
+    replyMessage: 'Thank you so much for the birthday wishes! 🎉 Really appreciate you reaching out! 😊',
+    cooldownMinutes: 60,
+    enabled: true,
+    matchCount: 0,
+    createdAt: Date.now()
   }
 ];
 

@@ -156,6 +156,20 @@ export function createApiServer(): express.Express {
     res.json(result);
   });
 
+  // Mock / Test Incoming Message Simulator (for verifying auto-replies without phone pairing)
+  app.post(['/api/test/incoming-message', '/api/messages/mock-incoming'], async (req: Request, res: Response) => {
+    const { from = '1555019005@c.us', senderName = 'Friend', body = 'Happy Birthday!', isGroup = false } = req.body;
+    const result = await (whatsappEngine as any).handleIncomingMessage?.({
+      id: `test_${Date.now()}`,
+      from,
+      senderName,
+      body,
+      timestamp: Date.now(),
+      isGroup
+    });
+    res.json({ success: true, simulatedMessage: { from, senderName, body }, triageResult: result });
+  });
+
   // HITL Approvals
   app.get('/api/approvals', (req: Request, res: Response) => {
     res.json(whatsappEngine.getPendingApprovals());
