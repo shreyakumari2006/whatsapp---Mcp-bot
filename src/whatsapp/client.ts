@@ -111,8 +111,17 @@ export class WhatsAppEngine {
     }, 'info');
   }
 
-  public async initializeClient(headless: boolean = true) {
-    if (this.client) return;
+  public async initializeClient(headless: boolean = true, forceRestart: boolean = false) {
+    if (this.client && !forceRestart) return;
+
+    if (forceRestart && this.client) {
+      try {
+        await this.client.destroy();
+      } catch (e) {
+        // ignore destroy error
+      }
+      this.client = null;
+    }
 
     this.updateStatus('INITIALIZING', 'Starting WhatsApp Web client...');
 

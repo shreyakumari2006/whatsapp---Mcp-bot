@@ -93,8 +93,15 @@ export function createApiServer(): express.Express {
   });
 
   // Dedicated High-Contrast Auto-Refreshing QR Code Page
-  app.get('/qr', (req: Request, res: Response) => {
-    const status = whatsappEngine.getStatus();
+  app.get('/qr', async (req: Request, res: Response) => {
+    let status = whatsappEngine.getStatus();
+    
+    // Auto-trigger WhatsApp engine initialization if not already initialized
+    if (status.status === 'DISCONNECTED' && !status.qrDataUrl) {
+      whatsappEngine.initializeClient(true).catch(() => {});
+      status = whatsappEngine.getStatus();
+    }
+
     res.setHeader('Content-Type', 'text/html');
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -103,7 +110,7 @@ export function createApiServer(): express.Express {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scan WhatsApp Pairing QR Code</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta http-equiv="refresh" content="5">
+  <meta http-equiv="refresh" content="4">
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans text-slate-900">
   <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 text-center max-w-sm w-full">
@@ -120,23 +127,34 @@ export function createApiServer(): express.Express {
         ? `<div class="p-4 bg-white border-2 border-emerald-500 rounded-2xl shadow-inner inline-block mb-4">
              <img src="${status.qrDataUrl}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto rounded-lg" />
            </div>
-           <p class="text-[11px] text-emerald-600 font-semibold animate-pulse">● Ready to scan • Auto-refreshes every 5s</p>`
+           <p class="text-[11px] text-emerald-600 font-semibold animate-pulse">● Ready to scan • Auto-refreshes every 4s</p>`
         : status.status === 'CONNECTED' || status.status === 'AUTHENTICATED'
         ? `<div class="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm font-bold mb-4">
              ✅ WhatsApp is Connected! ${status.user?.pushname ? `(${status.user.pushname})` : ''}
            </div>
            <a href="/" class="inline-block px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow hover:bg-emerald-700 transition">Go to Dashboard</a>`
-        : `<div class="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-sm font-semibold mb-4">
-             ⏳ Initializing WhatsApp Engine... Please wait a few seconds.
+        : `<div class="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-semibold mb-4 space-y-3">
+             <div class="animate-spin text-2xl">⏳</div>
+             <p>Launching Chromium &amp; Generating QR Code...</p>
+             <p class="text-[10px] text-amber-600">Page will refresh automatically.</p>
            </div>`
     }
 
-    <div class="mt-6 pt-4 border-t border-slate-100 text-[11px] text-slate-400">
-      Status: <span class="font-mono font-bold text-slate-700">${status.status}</span>
+    <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
+      <span>Status: <strong class="font-mono font-bold text-slate-700">${status.status}</strong></span>
+      <button onclick="fetch('/api/auth/reset', {method:'POST'}).then(() => location.reload())" class="text-xs text-emerald-600 font-semibold hover:underline">
+        🔄 Reset / New QR
+      </button>
     </div>
   </div>
 </body>
 </html>`);
+  });
+
+  // Auth Reset / Force QR Generation endpoint
+  app.post(['/api/auth/reset', '/api/auth/qr'], async (req: Request, res: Response) => {
+    whatsappEngine.initializeClient(true, true).catch(() => {});
+    res.json({ success: true, message: 'WhatsApp Engine restarted. Generating QR code...' });
   });
 
   // Messages / Chats
