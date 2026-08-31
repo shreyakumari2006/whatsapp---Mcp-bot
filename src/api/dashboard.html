@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WhatsApp MCP Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+    .font-mono { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-900 min-h-screen antialiased overflow-hidden">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo } = React;
+
+    function CommandCenter() {
+      const [status, setStatus] = useState('READY');
+      const [user, setUser] = useState(null);
+      const [qrDataUrl, setQrDataUrl] = useState(null);
+      const [messages, setMessages] = useState([]);
+      const [rules, setRules] = useState([]);
+      const [pendingApprovals, setPendingApprovals] = useState([]);
+      const [auditLogs, setAuditLogs] = useState([]);
+      const [selectedChatId, setSelectedChatId] = useState(null);
+      const [searchQuery, setSearchQuery] = useState('');
+      const [activeTab, setActiveTab] = useState('ALL');
+      const [showRuleStudio, setShowRuleStudio] = useState(false);
+      const [showAuditDrawer, setShowAuditDrawer] = useState(false);
+      const [showQRModal, setShowQRModal] = useState(false);
+      const [newMessageText, setNewMessageText] = useState('');
+      const [requireApprovalCheck, setRequireApprovalCheck] = useState(false);
+      const [isSending, setIsSending] = useState(false);
+
+      // New Rule Inputs
+      const [ruleName, setRuleName] = useState('');
+      const [rulePattern, setRulePattern] = useState('');
+      const [ruleType, setRuleType] = useState('contains');
+      const [ruleReply, setRuleReply] = useState('');
+      const [ruleCooldown, setRuleCooldown] = useState(30);
+
+      useEffect(() => {
+        const es = new EventSource('/api/stream');
+        es.onmessage = (e) => {
+          try {
+            const { type, data } = JSON.parse(e.data);
+            if (type === 'initial_state') {
+              if (data.status) setStatus(data.status);
+              if (data.user) setUser(data.user);
+              if (data.qrDataUrl) setQrDataUrl(data.qrDataUrl);
+              if (data.messages) {
+                setMessages(data.messages);
+                if (data.messages.length > 0 && !selectedChatId) {
+                  setSelectedChatId(data.messages[0].from);
+                }
+              }
+              if (data.rules) setRules(data.rules);
+              if (data.pendingApprovals) setPendingApprovals(data.pendingApprovals);
+              if (data.auditLogs) setAuditLogs(data.auditLogs);
+            } else if (type === 'qr_generated') {
+              setStatus('QR_READY');
+              setQrDataUrl(data.qrDataUrl);
+            } else if (type === 'ready') {
+              setStatus('READY');
+              setUser(data.user);
+              setQrDataUrl(null);
+            } else if (type === 'status_change') {
+              setStatus(data.status);
+              if (data.status === 'READY') setQrDataUrl(null);
+            } else if (type === 'message_received') {
+              setMessages(prev => [data, ...prev.filter(m => m.id !== data.id)]);
+            } else if (type === 'pending_approval') {
+              setPendingApprovals(prev => [data, ...prev.filter(p => p.id !== data.id)]);
+            } else if (type === 'audit_log') {
+              setAuditLogs(prev => [data, ...prev.slice(0, 99)]);
+            }
+          } catch (err) {
+            console.error(err);
+          }
+        };
+        return () => es.close();
+      }, [selectedChatId]);
+
+      // Thread grouping
+      const chatThreads = useMemo(() => {
+        const map = new Map();
+        for (const msg of messages) {
+          const id = msg.from;
+          if (!map.has(id)) {
+            map.set(id, {
+              chatId: id,
+              senderName: msg.senderName || id,
+              isGroup: msg.isGroup,
+              priority: msg.priority,
+              isVIP: msg.priority === 'VIP',
+              lastMessage: msg,
+              messages: [msg]
+            });
+          } else {
+            map.get(id).messages.push(msg);
+          }
+        }
+        return Array.from(map.values());
+      }, [messages]);
+
+      // Filtered chats
+      const filteredChats = useMemo(() => {
+        return chatThreads.filter(chat => {
+          const match = chat.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                        chat.lastMessage.body.toLowerCase().includes(searchQuery.toLowerCase());
+          if (!match) return false;
+          if (activeTab === 'URGENT') return chat.priority === 'CRITICAL' || chat.priority === 'URGENT';
+          if (activeTab === 'VIP') return chat.isVIP || chat.priority === 'VIP';
+          if (activeTab === 'GROUPS') return chat.isGroup;
+          if (activeTab === 'APPROVALS') return pendingApprovals.some(p => p.to === chat.chatId);
+          return true;
+        });
+      }, [chatThreads, searchQuery, activeTab, pendingApprovals]);
+
+      const activeChat = chatThreads.find(c => c.chatId === selectedChatId) || chatThreads[0];
+
+      const handleSendMessage = async (e) => {
+        e.preventDefault();
+        if (!newMessageText.trim() || !activeChat) return;
+        setIsSending(true);
+        try {
+          await fetch('/api/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              to: activeChat.chatId,
+              message: newMessageText,
+              requireApproval: requireApprovalCheck
+            })
+          });
+          setNewMessageText('');
+        } catch (e) {
+          console.error(e);
+        } finally {
+          setIsSending(false);
+        }
+      };
+
+      const approveMessage = async (approvalId) => {
+        await fetch('/api/approve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approvalId })
+        });
+        setPendingApprovals(prev => prev.filter(p => p.id !== approvalId));
+      };
+
+      const rejectMessage = async (approvalId) => {
+        await fetch('/api/reject', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approvalId })
+        });
+        setPendingApprovals(prev => prev.filter(p => p.id !== approvalId));
+      };
+
+      const toggleRule = async (ruleId, enabled) => {
+        const res = await fetch('/api/auto-reply/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ruleId, enabled })
+        });
+        if (res.ok) {
+          const { rule } = await res.json();
+          setRules(prev => prev.map(r => r.id === ruleId ? rule : r));
+        }
+      };
+
+      const handleCreateRule = async (e) => {
+        e.preventDefault();
+        if (!rulePattern || !ruleReply) return;
+        const res = await fetch('/api/auto-reply/configure', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: ruleName || `Rule (${rulePattern})`,
+            triggerPattern: rulePattern,
+            triggerType: ruleType,
+            replyMessage: ruleReply,
+            cooldownMinutes: Number(ruleCooldown)
+          })
+        });
+        if (res.ok) {
+          const { rule } = await res.json();
+          setRules(prev => [...prev.filter(r => r.id !== rule.id), rule]);
+          setRuleName('');
+          setRulePattern('');
+          setRuleReply('');
+          setShowRuleStudio(false);
+        }
+      };
+
+      return (
+        <div className="flex flex-col h-screen bg-slate-50 text-slate-900 overflow-hidden">
+          {/* Header */}
+          <header className="h-14 bg-white border-b border-slate-200 px-4 flex items-center justify-between z-20 shadow-xs">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-bold text-base shadow-xs">
+                ⚡
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h1 className="text-sm font-bold text-slate-900 tracking-tight">WhatsApp MCP Command Center</h1>
+                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">v1.0 Stdio</span>
+                </div>
+                <p className="text-[11px] text-slate-500">
+                  {user?.pushname ? `Connected as ${user.pushname}` : 'LocalAuth Engine Ready'} • Live SSE Synced
+                </p>
+              </div>
+            </div>
+
+            <div className="w-80">
+              <input
+                type="text"
+                placeholder="Search chats, VIPs, keywords..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="w-full px-3 py-1.5 text-xs bg-slate-100 border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500 transition-all placeholder:text-slate-400"
+              />
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <div
+                onClick={() => status === 'QR_READY' && setShowQRModal(true)}
+                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-semibold border ${
+                  status === 'READY'
+                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    : status === 'QR_READY'
+                    ? 'bg-amber-50 text-amber-700 border-amber-200 cursor-pointer animate-pulse'
+                    : 'bg-rose-50 text-rose-700 border-rose-200'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${status === 'READY' ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                <span>{status}</span>
+                {status === 'QR_READY' && <span className="ml-1">📱 Scan</span>}
+              </div>
+
+              {pendingApprovals.length > 0 && (
+                <button
+                  onClick={() => setActiveTab('APPROVALS')}
+                  className="px-2.5 py-1 bg-amber-50 text-amber-800 border border-amber-300 rounded-lg text-xs font-bold shadow-xs animate-bounce"
+                >
+                  ⏳ {pendingApprovals.length} Approval{pendingApprovals.length > 1 ? 's' : ''}
+                </button>
+              )}
+
+              <button
+                onClick={() => setShowRuleStudio(true)}
+                className="px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-semibold shadow-xs"
+              >
+                ⚡ Rule Studio ({rules.filter(r => r.enabled).length})
+              </button>
+
+              <button
+                onClick={() => setShowAuditDrawer(true)}
+                className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-semibold shadow-xs"
+              >
+                📟 Audit Terminal
+              </button>
+            </div>
+          </header>
+
+          {/* 3-Pane Viewport */}
+          <div className="flex flex-1 overflow-hidden">
+            {/* Feed Left */}
+            <aside className="w-80 border-r border-slate-200 bg-white flex flex-col z-10">
+              <div className="p-2 border-b border-slate-200 bg-slate-50/60 flex gap-1 text-[11px] font-bold">
+                {['ALL', 'URGENT', 'VIP', 'APPROVALS'].map(tab => (
+                  <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`flex-1 py-1.5 rounded text-center transition-all ${
+                      activeTab === tab ? 'bg-white text-slate-900 shadow-xs border border-slate-200' : 'text-slate-500 hover:bg-slate-200/50'
+                    }`}
+                  >
+                    {tab === 'URGENT' ? '🚨 Urgent' : tab === 'VIP' ? '👑 VIP' : tab === 'APPROVALS' ? '⏳ Staged' : 'All'}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+                {filteredChats.map(chat => {
+                  const isSel = activeChat?.chatId === chat.chatId;
+                  const isCrit = chat.priority === 'CRITICAL';
+                  const isUrg = chat.priority === 'URGENT';
+                  const isVip = chat.isVIP;
+
+                  return (
+                    <div
+                      key={chat.chatId}
+                      onClick={() => setSelectedChatId(chat.chatId)}
+                      className={`p-3.5 cursor-pointer transition-all border-l-4 ${
+                        isSel
+                          ? 'bg-slate-50 border-emerald-600 shadow-xs'
+                          : isCrit
+                          ? 'border-rose-500 hover:bg-rose-50/30'
+                          : isUrg
+                          ? 'border-amber-500 hover:bg-amber-50/30'
+                          : isVip
+                          ? 'border-purple-500 hover:bg-purple-50/30'
+                          : 'border-transparent hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-bold text-slate-900 truncate">
+                          {isVip ? '👑 ' : ''}{chat.senderName}
+                        </span>
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(chat.lastMessage.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-slate-500 line-clamp-2 leading-relaxed mb-2">
+                        {chat.lastMessage.body}
+                      </p>
+                      <div className="flex items-center justify-between">
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded border uppercase ${
+                          isCrit ? 'bg-rose-100 text-rose-800 border-rose-300' : isUrg ? 'bg-amber-100 text-amber-800 border-amber-300' : isVip ? 'bg-purple-100 text-purple-800 border-purple-300' : 'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          {chat.priority}
+                        </span>
+                        {chat.lastMessage.matchedKeywords && chat.lastMessage.matchedKeywords.length > 0 && (
+                          <span className="text-[10px] text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-mono border border-rose-200">
+                            #{chat.lastMessage.matchedKeywords[0]}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </aside>
+
+            {/* Conversation Center */}
+            <main className="flex-1 flex flex-col bg-white overflow-hidden">
+              {activeChat ? (
+                <>
+                  <div className="h-14 border-b border-slate-200 px-6 flex items-center justify-between bg-white z-10 shadow-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center font-bold text-xs">
+                        {activeChat.isVIP ? '👑' : '👤'}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <h2 className="text-sm font-bold text-slate-900">{activeChat.senderName}</h2>
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">{activeChat.priority}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 font-mono">{activeChat.chatId}</p>
+                      </div>
+                    </div>
+                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                      {activeChat.isVIP ? 'VIP Protection Active' : 'Auto-Responder Active'}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/40">
+                    {activeChat.messages.map(msg => {
+                      const isOut = msg.isOutgoing || msg.from === 'me';
+                      return (
+                        <div key={msg.id} className={`flex flex-col ${isOut ? 'items-end' : 'items-start'}`}>
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-[11px] font-bold text-slate-700">{msg.senderName}</span>
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                          </div>
+                          <div className={`max-w-xl p-3.5 rounded-2xl text-xs leading-relaxed shadow-xs ${
+                            isOut
+                              ? 'bg-emerald-600 text-white rounded-br-none'
+                              : 'bg-white text-slate-900 border border-slate-200 rounded-bl-none'
+                          }`}>
+                            {msg.body}
+                            {msg.matchedKeywords && msg.matchedKeywords.length > 0 && (
+                              <div className="mt-2 pt-2 border-t border-slate-100 flex gap-1 flex-wrap">
+                                {msg.matchedKeywords.map((k, i) => (
+                                  <span key={i} className="text-[10px] bg-rose-50 text-rose-700 px-1.5 py-0.5 rounded font-mono border border-rose-200">
+                                    #{k}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {msg.autoReplied && (
+                            <span className="text-[10px] text-emerald-600 font-bold mt-1">
+                              ⚡ Auto-Replied by Bot
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  <div className="p-4 bg-white border-t border-slate-200">
+                    <form onSubmit={handleSendMessage} className="flex flex-col gap-2">
+                      <div className="flex items-center justify-between text-xs text-slate-500 px-1">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={requireApprovalCheck}
+                            onChange={e => setRequireApprovalCheck(e.target.checked)}
+                            className="rounded border-slate-300 text-emerald-600 w-3.5 h-3.5"
+                          />
+                          <span className="font-semibold text-slate-700">Require Human Approval (Stage before sending)</span>
+                        </label>
+                        <span className="text-[11px] text-slate-400">Enter to dispatch</span>
+                      </div>
+                      <div className="flex gap-2">
+                        <textarea
+                          rows={2}
+                          placeholder={`Reply to ${activeChat.senderName}...`}
+                          value={newMessageText}
+                          onChange={e => setNewMessageText(e.target.value)}
+                          className="flex-1 p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-emerald-500 resize-none"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSending || !newMessageText.trim()}
+                          className="px-6 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-xs transition-colors"
+                        >
+                          {requireApprovalCheck ? 'Stage' : 'Send'}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </>
+              ) : (
+                <div className="flex-1 flex items-center justify-center text-slate-400 text-sm">
+                  Select a chat to begin triaging.
+                </div>
+              )}
+            </main>
+
+            {/* Dossier Right */}
+            <aside className="w-80 border-l border-slate-200 bg-white p-5 flex flex-col gap-6 overflow-y-auto z-10">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Contact Dossier</h3>
+                {activeChat && (
+                  <div className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3 text-xs">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-white border border-slate-200 flex items-center justify-center font-bold">
+                        {activeChat.isVIP ? '👑' : '👤'}
+                      </div>
+                      <div>
+                        <div className="font-bold text-slate-900">{activeChat.senderName}</div>
+                        <div className="text-slate-400 font-mono text-[11px]">{activeChat.chatId}</div>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-slate-200 grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">VIP Status</span>
+                        <span className="font-bold">{activeChat.isVIP ? 'Protected VIP' : 'Standard'}</span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-slate-400 block">Priority</span>
+                        <span className="font-bold text-slate-900">{activeChat.priority}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">HITL Staging Queue</h3>
+                  <span className="text-xs font-bold text-amber-800 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200">
+                    {pendingApprovals.length}
+                  </span>
+                </div>
+
+                <div className="space-y-2.5">
+                  {pendingApprovals.length === 0 ? (
+                    <div className="p-4 rounded-xl border border-dashed border-slate-200 text-center text-xs text-slate-400">
+                      No messages awaiting human review.
+                    </div>
+                  ) : (
+                    pendingApprovals.map(appr => (
+                      <div key={appr.id} className="p-3 bg-amber-50/60 border border-amber-200 rounded-xl space-y-2">
+                        <div className="flex justify-between text-xs font-bold">
+                          <span>To: {appr.recipientName || appr.to}</span>
+                          <span className="text-amber-800">REVIEW</span>
+                        </div>
+                        <p className="text-xs text-slate-700 italic bg-white p-2.5 rounded-lg border border-amber-100">
+                          "{appr.message}"
+                        </p>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => approveMessage(appr.id)}
+                            className="flex-1 py-1.5 bg-emerald-600 text-white rounded-lg font-bold text-xs shadow-xs"
+                          >
+                            ✓ Approve
+                          </button>
+                          <button
+                            onClick={() => rejectMessage(appr.id)}
+                            className="px-3 py-1.5 bg-white text-rose-700 border border-rose-200 rounded-lg font-bold text-xs"
+                          >
+                            ✕ Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            </aside>
+          </div>
+
+          {/* Rule Studio Modal */}
+          {showRuleStudio && (
+            <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl overflow-hidden">
+                <div className="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
+                  <h3 className="text-sm font-bold text-slate-900">⚡ Auto-Reply Automation Studio</h3>
+                  <button onClick={() => setShowRuleStudio(false)} className="text-slate-400 hover:text-slate-600 font-bold">✕</button>
+                </div>
+                <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto">
+                  <form onSubmit={handleCreateRule} className="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                    <h4 className="text-xs font-bold uppercase text-slate-900">Create Pattern Rule</h4>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Rule Name</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. Pricing Inquiries"
+                          value={ruleName}
+                          onChange={e => setRuleName(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Trigger Type</label>
+                        <select
+                          value={ruleType}
+                          onChange={e => setRuleType(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                        >
+                          <option value="contains">Contains Keyword</option>
+                          <option value="exact">Exact Match</option>
+                          <option value="regex">Regular Expression (Regex)</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="col-span-2">
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Pattern / Keyword</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. pricing"
+                          value={rulePattern}
+                          onChange={e => setRulePattern(e.target.value)}
+                          className="w-full px-3 py-1.5 text-xs font-mono bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Cooldown (Mins)</label>
+                        <input
+                          type="number"
+                          value={ruleCooldown}
+                          onChange={e => setRuleCooldown(Number(e.target.value))}
+                          className="w-full px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-slate-600 block mb-1">Auto-Response Copy</label>
+                      <textarea
+                        rows={2}
+                        placeholder="Enter response message copy..."
+                        value={ruleReply}
+                        onChange={e => setRuleReply(e.target.value)}
+                        className="w-full p-2.5 text-xs bg-white border border-slate-200 rounded-lg focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      disabled={!rulePattern || !ruleReply}
+                      className="px-4 py-2 bg-emerald-600 text-white rounded-lg font-bold text-xs shadow-xs"
+                    >
+                      + Add Automation Rule
+                    </button>
+                  </form>
+
+                  <div className="space-y-2">
+                    <h4 className="text-xs font-bold uppercase text-slate-900">Active Rules ({rules.length})</h4>
+                    {rules.map(rule => (
+                      <div key={rule.id} className="p-3.5 bg-white border border-slate-200 rounded-xl flex items-center justify-between shadow-xs">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-900">{rule.name}</span>
+                            <span className="text-[10px] font-mono bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                              {rule.triggerType}("{rule.triggerPattern}")
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-slate-500 italic mt-1">"{rule.replyMessage}"</p>
+                          <span className="text-[10px] text-slate-400 block mt-1">Cooldown: {rule.cooldownMinutes}m • Executed: {rule.matchCount} times</span>
+                        </div>
+                        <button
+                          onClick={() => toggleRule(rule.id, !rule.enabled)}
+                          className={`px-3 py-1 rounded-full text-xs font-bold ${
+                            rule.enabled ? 'bg-emerald-50 text-emerald-700 border border-emerald-300' : 'bg-slate-100 text-slate-500'
+                          }`}
+                        >
+                          {rule.enabled ? 'ACTIVE' : 'PAUSED'}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Audit Terminal Drawer */}
+          {showAuditDrawer && (
+            <div className="fixed inset-y-0 right-0 w-96 bg-slate-950 text-slate-100 shadow-2xl border-l border-slate-800 z-50 flex flex-col font-mono text-xs">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900">
+                <span className="font-bold text-emerald-400">📡 Live MCP Telemetry Bus</span>
+                <button onClick={() => setShowAuditDrawer(false)} className="text-slate-400 hover:text-white font-bold">✕</button>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {auditLogs.map(log => (
+                  <div key={log.id} className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-[11px]">
+                    <div className="flex justify-between text-slate-400 mb-1">
+                      <span className="text-emerald-400 font-bold">[{log.type}]</span>
+                      <span>{new Date(log.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                    <div className="text-slate-200 font-semibold">{log.action || log.title}</div>
+                    {log.details && (
+                      <pre className="mt-1 text-[10px] text-slate-400 overflow-x-auto bg-black/40 p-1.5 rounded">
+                        {JSON.stringify(log.details, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QR Overlay */}
+          {showQRModal && qrDataUrl && (
+            <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-2xl border border-slate-200">
+                <h3 className="text-lg font-bold text-slate-900">Pair WhatsApp Session</h3>
+                <p className="text-xs text-slate-500 mt-1 mb-6">Open WhatsApp &gt; Linked Devices &gt; Link a Device.</p>
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl inline-block shadow-inner mb-4">
+                  <img src={qrDataUrl} alt="Pairing QR" className="w-52 h-52 rounded-xl" />
+                </div>
+                <button
+                  onClick={() => setShowQRModal(false)}
+                  className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    ReactDOM.render(<CommandCenter />, document.getElementById('root'));
+  </script>
+</body>
+</html>

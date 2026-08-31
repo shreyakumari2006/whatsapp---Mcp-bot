@@ -1,0 +1,47 @@
+{
+  "name": "whatsapp-mcp-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Production-ready WhatsApp MCP Server with Auto-Responder, Urgency Triage, and Real-time Dashboard",
+  "main": "dist/index.js",
+  "scripts": {
+    "dev": "node scripts/build-widgets.cjs && nitrostack-cli dev",
+    "build:widgets": "node scripts/build-widgets.cjs",
+    "build": "node scripts/build-widgets.cjs && nitrostack-cli build",
+    "start": "nitrostack-cli start",
+    "start:node": "node dist/index.js",
+    "evaluate": "node dist/evaluateMock.js",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.5.0",
+    "@nitrostack/cli": "^1.0.15",
+    "@nitrostack/core": "^1.0.15",
+    "@nitrostack/widgets": "^1.0.9",
+    "axios": "^1.7.9",
+    "cors": "^2.8.5",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "lucide-react": "^0.475.0",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.0",
+    "@types/qrcode": "^1.5.5",
+    "@types/qrcode-terminal": "^0.12.2",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "esbuild": "^0.24.2",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "typescript": "^5.3.3"
+  },
+  "author": "shreya kumari"
+}

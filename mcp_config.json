@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "whatsapp": {
+      "command": "node",
+      "args": [
+        "/Users/shreyakumari0608gmail.com/Desktop/whatsapp/dist/index.js"
+      ],
+      "env": {
+        "PORT": "3000",
+        "DISABLE_WA_INIT": "false"
+      }
+    }
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "whatsapp-triage": {
+      "command": "node",
+      "args": ["/Users/shreyakumari0608gmail.com/Desktop/whatsapp/dist/index.js"],
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}

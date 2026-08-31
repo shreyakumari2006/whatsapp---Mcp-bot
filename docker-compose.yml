@@ -1,0 +1,65 @@
+version: '3.8'
+
+services:
+  # 1. WhatsApp MCP Backend Runtime (Dual MCP + REST Gateway)
+  whatsapp-backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: whatsapp_mcp_backend
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium
+      - PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      # Persist WhatsApp LocalAuth tokens and Chromium session across container restarts
+      - whatsapp_auth_data:/app/.wwebjs_auth
+      - whatsapp_cache_data:/app/.wwebjs_cache
+    networks:
+      - whatsapp_network
+    depends_on:
+      - redis
+    # Add shared memory allocation for headless Chromium stability
+    shm_size: '2gb'
+
+  # 2. Redis In-Memory Cache (Locks, deduplication, and approval queues)
+  redis:
+    image: redis:7-alpine
+    container_name: whatsapp_mcp_redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - whatsapp_network
+
+  # 3. Nginx Reverse Proxy & Static Asset Gateway
+  nginx:
+    image: nginx:alpine
+    container_name: whatsapp_mcp_gateway
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      # In production, mounts the compiled React dist directly for zero-latency static serving
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    networks:
+      - whatsapp_network
+    depends_on:
+      - whatsapp-backend
+
+networks:
+  whatsapp_network:
+    driver: bridge
+
+volumes:
+  whatsapp_auth_data:
+    driver: local
+  whatsapp_cache_data:
+    driver: local
+  redis_data:
+    driver: local

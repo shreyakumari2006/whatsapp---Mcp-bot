@@ -1,0 +1,13 @@
+node_modules
+frontend/node_modules
+src/widgets/node_modules
+.git
+.github
+.wwebjs_auth
+.wwebjs_cache
+dist
+frontend/dist
+src/widgets/out
+*.log
+.DS_Store
+.env.local

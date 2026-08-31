@@ -1,0 +1,109 @@
+import { Injectable, OnApplicationBootstrap, OnApplicationShutdown } from '@nitrostack/core';
+import { createApiServer } from '../api/server.js';
+import { whatsappEngine } from '../whatsapp/client.js';
+import http from 'node:http';
+import path from 'node:path';
+import fs from 'node:fs';
+import express from 'express';
+
+@Injectable()
+export class DashboardService implements OnApplicationBootstrap, OnApplicationShutdown {
+  private server: http.Server | null = null;
+  private widgetServer: http.Server | null = null;
+
+  async onApplicationBootstrap() {
+    const defaultPort = Number(process.env.DASHBOARD_PORT || process.env.PORT) || 3000;
+    const expressApp = createApiServer();
+
+    const tryListen = (port: number, attemptsLeft: number) => {
+      if (attemptsLeft <= 0) {
+        console.error('⚠️ Could not bind Express dashboard port; running in headless MCP mode.');
+        return;
+      }
+
+      const srv = http.createServer(expressApp);
+
+      srv.once('error', (err: any) => {
+        if (err.code === 'EADDRINUSE') {
+          tryListen(port + 1, attemptsLeft - 1);
+        } else {
+          console.error('Express server error:', err.message);
+        }
+      });
+
+      srv.once('listening', () => {
+        this.server = srv;
+        const addr = srv.address();
+        const actualPort = typeof addr === 'object' && addr ? addr.port : port;
+        console.error(`🌐 Live Web Dashboard running at : http://localhost:${actualPort}`);
+        console.error(`📡 Live SSE Event Stream         : http://localhost:${actualPort}/api/stream`);
+        console.error(`📊 System & Health Telemetry     : http://localhost:${actualPort}/api/status\n`);
+      });
+
+      srv.listen(port);
+    };
+
+    tryListen(defaultPort, 15);
+
+    // Ensure Widget Server is running on port 3001 for NitroStudio
+    try {
+      const widgetOutDir = path.join(process.cwd(), 'src/widgets/out');
+      const widgetApp = express();
+
+      widgetApp.use((req, res, next) => {
+        res.header('Access-Control-Allow-Origin', '*');
+        res.header('Access-Control-Allow-Headers', '*');
+        res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+        next();
+      });
+
+      widgetApp.get(['/:widget', '/widgets/:widget', '/:widget/', '/widgets/:widget/'], (req, res, next) => {
+        const raw = req.params.widget;
+        const w = Array.isArray(raw) ? raw[0] : raw;
+        if (!w) return next();
+        const f1 = path.join(widgetOutDir, w, 'index.html');
+        const f2 = path.join(widgetOutDir, `${w}.html`);
+        if (fs.existsSync(f1)) {
+          res.setHeader('Content-Type', 'text/html');
+          return res.sendFile(f1);
+        }
+        if (fs.existsSync(f2)) {
+          res.setHeader('Content-Type', 'text/html');
+          return res.sendFile(f2);
+        }
+        next();
+      });
+
+      widgetApp.use('/widgets', express.static(widgetOutDir));
+      widgetApp.use(express.static(widgetOutDir));
+
+      const wSrv = http.createServer(widgetApp);
+      wSrv.once('error', () => {
+        // Port 3001 already in use by NitroStudio, which is fine
+      });
+      wSrv.once('listening', () => {
+        this.widgetServer = wSrv;
+        console.error('✨ NitroStudio Widget Server active on http://localhost:3001');
+      });
+      wSrv.listen(3001);
+    } catch (e: any) {
+      console.error('Note: widget server setup:', e.message);
+    }
+
+    // Initialize WhatsApp Engine in background
+    if (process.env.DISABLE_WA_INIT !== 'true') {
+      whatsappEngine.initializeClient(true).catch((err) => {
+        console.error('WhatsApp Engine background note:', err.message);
+      });
+    }
+  }
+
+  async onApplicationShutdown() {
+    if (this.server) {
+      this.server.close();
+    }
+    if (this.widgetServer) {
+      this.widgetServer.close();
+    }
+  }
+}

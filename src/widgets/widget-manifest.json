@@ -1,0 +1,296 @@
+{
+  "version": "1.0.0",
+  "widgets": [
+    {
+      "uri": "/send-message",
+      "name": "Message Dispatcher & Approval",
+      "description": "Interactive WhatsApp message dispatcher with delivery status and staged human-in-the-loop approval confirmation",
+      "examples": [
+        {
+          "name": "Direct Sent Confirmation",
+          "description": "Message dispatched directly to recipient",
+          "data": {
+            "status": "sent",
+            "id": "msg_out_1788176970566",
+            "message": "Message sent successfully.",
+            "recipient": "1555019001@c.us",
+            "body": "Hello Sarah, the project audit is ready for review.",
+            "timestamp": 1788176970566
+          }
+        },
+        {
+          "name": "Pending Human Approval",
+          "description": "High-stakes message awaiting human verification",
+          "data": {
+            "status": "pending_approval",
+            "id": "appr_1788176970567_huaafm",
+            "message": "Message submitted to approval queue.",
+            "recipient": "1555019002@c.us",
+            "body": "Hi David, sending confidential agreement for signature.",
+            "timestamp": 1788176970567
+          }
+        }
+      ],
+      "tags": ["messaging", "dispatch", "approval", "whatsapp"]
+    },
+    {
+      "uri": "/urgent-messages",
+      "name": "Urgency Triage Radar",
+      "description": "Urgency classification radar showing Critical & Urgent prioritized incoming messages",
+      "examples": [
+        {
+          "name": "Critical Outage Alerts",
+          "description": "Server down and OTP alerts",
+          "data": {
+            "timeWindowHours": 24,
+            "totalCount": 2,
+            "messages": [
+              {
+                "id": "msg_001",
+                "from": "1555019003@c.us",
+                "senderName": "DevOps Alert Bot",
+                "body": "CRITICAL ALERT: Production database cluster down and payment webhook failed! Emergency failover required ASAP. OTP: 883921",
+                "timestamp": 1788176790561,
+                "priority": "CRITICAL",
+                "isGroup": false,
+                "matchedKeywords": ["asap", "emergency", "otp", "failed", "down"],
+                "urgencyScore": 5
+              },
+              {
+                "id": "msg_002",
+                "from": "1555019004@c.us",
+                "senderName": "Alex Johnson (Colleague)",
+                "body": "Hey, are you at your desk? Please call me right now, we have a hard deadline in 30 mins!",
+                "timestamp": 1788176490561,
+                "priority": "URGENT",
+                "isGroup": false,
+                "matchedKeywords": ["call me", "right now", "deadline"],
+                "urgencyScore": 3
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["triage", "urgency", "critical", "radar"]
+    },
+    {
+      "uri": "/recent-chats",
+      "name": "WhatsApp Inbox Feed",
+      "description": "Split-pane inbox conversations categorized by Priority Tiers (Critical, Urgent, VIP, Normal, Noise)",
+      "examples": [
+        {
+          "name": "All Recent Chats",
+          "description": "Overview of direct and group chats",
+          "data": {
+            "filter": "all",
+            "totalChats": 6,
+            "chats": [
+              {
+                "id": "1555019003@c.us",
+                "name": "DevOps Alert Bot",
+                "isGroup": false,
+                "priority": "CRITICAL",
+                "lastMessage": "CRITICAL ALERT: Production database cluster down...",
+                "timestamp": 1788176790561,
+                "unreadCount": 1
+              },
+              {
+                "id": "1555019001@c.us",
+                "name": "Sarah Chen (CEO)",
+                "isGroup": false,
+                "isVIP": true,
+                "vipTier": "TIER_1_EXECUTIVE",
+                "priority": "VIP",
+                "lastMessage": "Good morning Shreya, whenever you have a chance...",
+                "timestamp": 1788176370561,
+                "unreadCount": 1
+              },
+              {
+                "id": "1555019002@c.us",
+                "name": "David Miller (Key Client)",
+                "isGroup": false,
+                "isVIP": true,
+                "vipTier": "TIER_2_CLIENT",
+                "priority": "VIP",
+                "lastMessage": "Could you share the pricing breakdown for enterprise?",
+                "timestamp": 1788174270561,
+                "unreadCount": 0
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["inbox", "chats", "feed", "priority"]
+    },
+    {
+      "uri": "/chat-history",
+      "name": "Conversation Timeline",
+      "description": "Chronological interactive chat history and thread inspector",
+      "examples": [
+        {
+          "name": "VIP Conversation History",
+          "description": "Chat transcript with Sarah Chen",
+          "data": {
+            "chatId": "1555019001@c.us",
+            "contactName": "Sarah Chen (CEO)",
+            "count": 2,
+            "history": [
+              {
+                "id": "msg_003",
+                "from": "1555019001@c.us",
+                "senderName": "Sarah Chen (CEO)",
+                "body": "Good morning Shreya, whenever you have a chance, let's review the Q3 roadmap deck.",
+                "timestamp": 1788176370561,
+                "priority": "VIP"
+              },
+              {
+                "id": "msg_out_101",
+                "from": "me",
+                "senderName": "You",
+                "body": "Good morning Sarah! Sending over the revised slide deck now.",
+                "timestamp": 1788176500000,
+                "priority": "NORMAL"
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["transcript", "history", "timeline", "messages"]
+    },
+    {
+      "uri": "/search-contacts",
+      "name": "Contact & VIP Directory",
+      "description": "Searchable WhatsApp contact book with VIP tier flags, status, and direct messaging actions",
+      "examples": [
+        {
+          "name": "VIP Search Results",
+          "description": "Found VIP executives and key clients",
+          "data": {
+            "query": "Sarah",
+            "count": 1,
+            "contacts": [
+              {
+                "id": "1555019001@c.us",
+                "name": "Sarah Chen (CEO)",
+                "phone": "+1 (555) 019-001",
+                "isVIP": true,
+                "vipTier": "TIER_1_EXECUTIVE",
+                "isGroup": false,
+                "unreadCount": 1,
+                "lastActive": 1788176370561
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["contacts", "vip", "directory", "search"]
+    },
+    {
+      "uri": "/schedule-message",
+      "name": "Scheduled Dispatch Manager",
+      "description": "Interactive queue card showing pending scheduled WhatsApp dispatches",
+      "examples": [
+        {
+          "name": "Meeting Reminder Dispatch",
+          "description": "Scheduled reminder for tomorrow morning",
+          "data": {
+            "id": "sched_1788176970572_culof",
+            "recipient": "1555019004@c.us",
+            "recipientName": "Alex Johnson",
+            "message": "Reminder: Sync meeting starts in 10 minutes.",
+            "sendAt": 1788177870567,
+            "status": "pending",
+            "createdAt": 1788176970572
+          }
+        }
+      ],
+      "tags": ["schedule", "queue", "timers", "automation"]
+    },
+    {
+      "uri": "/configure-auto-reply",
+      "name": "Auto-Reply Rule Builder",
+      "description": "Pattern matcher card for configuring keyword, exact, and regex auto-response rules",
+      "examples": [
+        {
+          "name": "Pricing Inquiries Rule",
+          "description": "Auto-replies to pricing requests with link",
+          "data": {
+            "success": true,
+            "rule": {
+              "id": "rule_pricing_inquiry",
+              "name": "Pricing & Service Inquiries",
+              "triggerPattern": "pricing",
+              "triggerType": "contains",
+              "replyMessage": "Thanks for reaching out! You can view our standard pricing tiers at https://example.com/pricing.",
+              "cooldownMinutes": 60,
+              "enabled": true,
+              "matchCount": 14,
+              "createdAt": 1787572170561
+            }
+          }
+        }
+      ],
+      "tags": ["automation", "rules", "triggers", "regex"]
+    },
+    {
+      "uri": "/active-auto-replies",
+      "name": "Automation Rules Console",
+      "description": "Active auto-reply rules monitor with match statistics and cooldown limits",
+      "examples": [
+        {
+          "name": "Active Rules Table",
+          "description": "List of active rules and deduplication policies",
+          "data": {
+            "count": 3,
+            "filter": "active",
+            "rules": [
+              {
+                "id": "rule_pricing_inquiry",
+                "name": "Pricing & Service Inquiries",
+                "triggerPattern": "pricing",
+                "triggerType": "contains",
+                "replyMessage": "Thanks for reaching out! View pricing at https://example.com/pricing",
+                "cooldownMinutes": 60,
+                "enabled": true,
+                "matchCount": 14
+              },
+              {
+                "id": "rule_office_hours",
+                "name": "Office Hours Auto-Response",
+                "triggerPattern": "office hours",
+                "triggerType": "contains",
+                "replyMessage": "Our standard hours are Mon-Fri 9:00 AM - 6:00 PM EST.",
+                "cooldownMinutes": 30,
+                "enabled": true,
+                "matchCount": 8
+              }
+            ]
+          }
+        }
+      ],
+      "tags": ["automation", "monitor", "stats", "rules"]
+    },
+    {
+      "uri": "/toggle-responder",
+      "name": "Rule State Switcher",
+      "description": "Dynamic status switcher for pausing or resuming specific auto-reply rules",
+      "examples": [
+        {
+          "name": "Paused Rule Confirmation",
+          "description": "Rule paused successfully",
+          "data": {
+            "success": true,
+            "ruleId": "rule_pricing_inquiry",
+            "enabled": false,
+            "rule": {
+              "id": "rule_pricing_inquiry",
+              "name": "Pricing & Service Inquiries",
+              "enabled": false
+            }
+          }
+        }
+      ],
+      "tags": ["toggle", "pause", "resume", "rules"]
+    }
+  ]
+}
