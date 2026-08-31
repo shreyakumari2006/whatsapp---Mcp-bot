@@ -1,6 +1,7 @@
 import { useState, useMemo } from 'react';
 import { useWhatsAppSSE } from './hooks/useWhatsAppSSE';
 import { Navbar } from './components/Navbar';
+import { AnalyticsRadar } from './components/AnalyticsRadar';
 import { ChatFeed, type ChatThreadItem } from './components/ChatFeed';
 import { ConversationThread } from './components/ConversationThread';
 import { ContactInspector } from './components/ContactInspector';
@@ -18,13 +19,15 @@ export default function App() {
     rules,
     pendingApprovals,
     auditLogs,
+    analytics,
     selectedChatId,
     setSelectedChatId,
     approveMessage,
     rejectMessage,
     toggleRule,
     configureRule,
-    sendMessage
+    sendMessage,
+    generateAIDraft
   } = useWhatsAppSSE();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -108,7 +111,10 @@ export default function App() {
         onOpenAudit={() => setShowAuditDrawer(true)}
       />
 
-      {/* 2. MAIN 3-PANE VIEWPORT */}
+      {/* 2. LIVE TRIAGE RADAR & TELEMETRY BANNER */}
+      <AnalyticsRadar analytics={analytics} />
+
+      {/* 3. MAIN 3-PANE VIEWPORT */}
       <div className="flex flex-1 overflow-hidden">
         <ChatFeed
           activeTab={activeTab}
@@ -132,13 +138,14 @@ export default function App() {
         />
       </div>
 
-      {/* 3. MODALS & DRAWERS */}
+      {/* 4. MODALS & DRAWERS */}
       <HITLApprovalModal
         isOpen={showApprovalsModal}
         onClose={() => setShowApprovalsModal(false)}
         pendingApprovals={pendingApprovals}
         onApprove={approveMessage}
         onReject={rejectMessage}
+        onGenerateDraft={generateAIDraft}
       />
 
       <RuleStudio

@@ -74,6 +74,32 @@ export interface AuditLogEntry {
   level: 'info' | 'warn' | 'error' | 'success';
 }
 
+export type AIDraftTone = 'professional' | 'empathetic' | 'brief' | 'technical';
+
+export interface AIDraftResponse {
+  suggestedReply: string;
+  reasoning: string;
+  confidenceScore: number;
+  tone: AIDraftTone;
+}
+
+export interface TelemetryMetrics {
+  triageDistribution: {
+    CRITICAL: number;
+    URGENT: number;
+    VIP: number;
+    NORMAL: number;
+    NOISE: number;
+  };
+  avgTriageLatencyMs: number;
+  botSuppressionRate: number;
+  humanApprovalsPending: number;
+  humanApprovalsResolved: number;
+  totalMessagesProcessed: number;
+  automatedRepliesSent: number;
+  suppressedCount: number;
+}
+
 export interface SystemHealthState {
   status: WhatsAppConnectionStatus;
   user: { id: string; pushname: string } | null;
@@ -94,4 +120,5 @@ export type SSEEvent =
   | { type: 'auto_reply_sent'; data: { ruleId: string; to: string; replyMessage: string; timestamp: number } }
   | { type: 'pending_approval'; data: PendingApproval }
   | { type: 'mcp_tool_called'; data: { tool: string; args: any; timestamp: number } }
-  | { type: 'audit_log'; data: AuditLogEntry };
+  | { type: 'audit_log'; data: AuditLogEntry }
+  | { type: 'analytics_update'; data: TelemetryMetrics };

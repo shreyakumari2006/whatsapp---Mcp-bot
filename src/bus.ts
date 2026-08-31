@@ -79,6 +79,30 @@ export interface AuditLogItem {
   severity?: 'info' | 'warn' | 'error' | 'success';
 }
 
+export interface TelemetryMetrics {
+  triageDistribution: {
+    CRITICAL: number;
+    URGENT: number;
+    VIP: number;
+    NORMAL: number;
+    NOISE: number;
+  };
+  avgTriageLatencyMs: number;
+  botSuppressionRate: number;
+  humanApprovalsPending: number;
+  humanApprovalsResolved: number;
+  totalMessagesProcessed: number;
+  automatedRepliesSent: number;
+  suppressedCount: number;
+}
+
+export interface AIDraftResponse {
+  suggestedReply: string;
+  reasoning: string;
+  confidenceScore: number;
+  tone: 'professional' | 'empathetic' | 'brief' | 'technical';
+}
+
 export interface EventBusMap {
   qr_generated: QRGeneratedEvent;
   ready: ReadyEvent;
@@ -88,6 +112,7 @@ export interface EventBusMap {
   pending_approval: PendingApprovalEvent;
   status_change: StatusChangeEvent;
   audit_log: AuditLogItem;
+  analytics_update: TelemetryMetrics;
 }
 
 class TypedEventEmitter extends EventEmitter {

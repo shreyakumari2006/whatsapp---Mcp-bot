@@ -4,7 +4,10 @@ import type {
   AutoReplyRule, 
   PendingApproval, 
   AuditLogEntry, 
-  WhatsAppConnectionStatus 
+  WhatsAppConnectionStatus,
+  TelemetryMetrics,
+  AIDraftTone,
+  AIDraftResponse
 } from '../types/whatsapp';
 
 export function useWhatsAppSSE(baseUrl = '') {
@@ -15,6 +18,16 @@ export function useWhatsAppSSE(baseUrl = '') {
   const [rules, setRules] = useState<AutoReplyRule[]>([]);
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [analytics, setAnalytics] = useState<TelemetryMetrics>({
+    triageDistribution: { CRITICAL: 1, URGENT: 1, VIP: 2, NORMAL: 3, NOISE: 1 },
+    avgTriageLatencyMs: 38,
+    botSuppressionRate: 25,
+    humanApprovalsPending: 1,
+    humanApprovalsResolved: 6,
+    totalMessagesProcessed: 8,
+    automatedRepliesSent: 1,
+    suppressedCount: 3
+  });
   const [isConnectedSSE, setIsConnectedSSE] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<number>(Date.now());
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
@@ -53,8 +66,17 @@ export function useWhatsAppSSE(baseUrl = '') {
             setRules(data.rules || []);
             setPendingApprovals(data.pendingApprovals || []);
             setAuditLogs(data.auditLogs || []);
+            if (data.analytics) {
+              setAnalytics(data.analytics);
+            }
             if (data.messages && data.messages.length > 0 && !selectedChatId) {
               setSelectedChatId(data.messages[0].from);
+            }
+            break;
+
+          case 'analytics_update':
+            if (data) {
+              setAnalytics(data);
             }
             break;
 
@@ -228,6 +250,27 @@ export function useWhatsAppSSE(baseUrl = '') {
     }
   };
 
+  const generateAIDraft = async (
+    approvalId: string, 
+    tone: AIDraftTone = 'professional',
+    customInstruction?: string
+  ): Promise<AIDraftResponse | null> => {
+    try {
+      const res = await fetch(`${baseUrl}/api/approvals/${approvalId}/generate-draft`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tone, customInstruction })
+      });
+      if (res.ok) {
+        return await res.json();
+      }
+      return null;
+    } catch (e) {
+      console.error('Failed to generate AI draft:', e);
+      return null;
+    }
+  };
+
   return {
     status,
     user,
@@ -236,6 +279,7 @@ export function useWhatsAppSSE(baseUrl = '') {
     rules,
     pendingApprovals,
     auditLogs,
+    analytics,
     isConnectedSSE,
     lastHeartbeat,
     selectedChatId,
@@ -244,6 +288,7 @@ export function useWhatsAppSSE(baseUrl = '') {
     rejectMessage,
     toggleRule,
     configureRule,
-    sendMessage
+    sendMessage,
+    generateAIDraft
   };
 }

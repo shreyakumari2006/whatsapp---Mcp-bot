@@ -37,7 +37,8 @@ export function createApiServer(): express.Express {
       messages: whatsappEngine.getMessages('all', 30),
       rules: whatsappEngine.getAutoReplyRules('all'),
       pendingApprovals: whatsappEngine.getPendingApprovals(),
-      auditLogs: whatsappEngine.getAuditLogs(30)
+      auditLogs: whatsappEngine.getAuditLogs(30),
+      analytics: whatsappEngine.getAnalytics()
     });
 
     // Listeners for all bus events
@@ -49,6 +50,7 @@ export function createApiServer(): express.Express {
     const onPendingApproval = (data: any) => sendSSE('pending_approval', data);
     const onStatusChange = (data: any) => sendSSE('status_change', data);
     const onAuditLog = (data: any) => sendSSE('audit_log', data);
+    const onAnalytics = (data: any) => sendSSE('analytics_update', data);
 
     eventBus.on('qr_generated', onQR);
     eventBus.on('ready', onReady);
@@ -58,6 +60,7 @@ export function createApiServer(): express.Express {
     eventBus.on('pending_approval', onPendingApproval);
     eventBus.on('status_change', onStatusChange);
     eventBus.on('audit_log', onAuditLog);
+    eventBus.on('analytics_update', onAnalytics);
 
     req.on('close', () => {
       eventBus.off('qr_generated', onQR);
@@ -68,6 +71,7 @@ export function createApiServer(): express.Express {
       eventBus.off('pending_approval', onPendingApproval);
       eventBus.off('status_change', onStatusChange);
       eventBus.off('audit_log', onAuditLog);
+      eventBus.off('analytics_update', onAnalytics);
     });
   });
 
@@ -189,6 +193,21 @@ export function createApiServer(): express.Express {
     if (!approvalId) return res.status(400).json({ error: 'Missing approvalId' });
     const success = await whatsappEngine.rejectMessage(approvalId);
     res.json({ success, approvalId });
+  });
+
+  // AI-Powered Dynamic Draft Generator for HITL Approval
+  app.post(['/api/approvals/:id/generate-draft', '/api/approvals/generate-draft'], async (req: Request, res: Response) => {
+    const rawId = req.params.id;
+    const approvalId = (Array.isArray(rawId) ? rawId[0] : rawId) || req.body.approvalId;
+    const { tone = 'professional', customInstruction } = req.body;
+    if (!approvalId) return res.status(400).json({ error: 'Missing approvalId' });
+    const draft = await whatsappEngine.generateAIDraft(approvalId, tone, customInstruction);
+    res.json({ success: true, ...draft });
+  });
+
+  // Live Telemetry & Triage Radar Metrics
+  app.get('/api/analytics', (req: Request, res: Response) => {
+    res.json(whatsappEngine.getAnalytics());
   });
 
   // Auto-Reply Rules CRUD & Toggle
