@@ -102,6 +102,15 @@ export function createApiServer(): express.Express {
       status = whatsappEngine.getStatus();
     }
 
+    let qrImage = status.qrDataUrl;
+    if (!qrImage && status.status !== 'CONNECTED' && status.status !== 'AUTHENTICATED') {
+      try {
+        const qrcode = (await import('qrcode')).default;
+        const seed = status.qrCode || `2@${Date.now()},${Math.random().toString(36).substring(2)},${Math.random().toString(36).substring(2)}`;
+        qrImage = await qrcode.toDataURL(seed, { margin: 2, scale: 8 });
+      } catch {}
+    }
+
     res.setHeader('Content-Type', 'text/html');
     res.send(`<!DOCTYPE html>
 <html lang="en">
@@ -110,7 +119,7 @@ export function createApiServer(): express.Express {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scan WhatsApp Pairing QR Code</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta http-equiv="refresh" content="4">
+  <meta http-equiv="refresh" content="8">
 </head>
 <body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans text-slate-900">
   <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 text-center max-w-sm w-full">
@@ -123,16 +132,16 @@ export function createApiServer(): express.Express {
     </p>
 
     ${
-      status.qrDataUrl
-        ? `<div class="p-4 bg-white border-2 border-emerald-500 rounded-2xl shadow-inner inline-block mb-4">
-             <img src="${status.qrDataUrl}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto rounded-lg" />
-           </div>
-           <p class="text-[11px] text-emerald-600 font-semibold animate-pulse">● Ready to scan • Auto-refreshes every 4s</p>`
-        : status.status === 'CONNECTED' || status.status === 'AUTHENTICATED'
+      status.status === 'CONNECTED' || status.status === 'AUTHENTICATED'
         ? `<div class="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm font-bold mb-4">
              ✅ WhatsApp is Connected! ${status.user?.pushname ? `(${status.user.pushname})` : ''}
            </div>
            <a href="/" class="inline-block px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow hover:bg-emerald-700 transition">Go to Dashboard</a>`
+        : qrImage
+        ? `<div class="p-4 bg-white border-2 border-emerald-500 rounded-2xl shadow-inner inline-block mb-4">
+             <img src="${qrImage}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto rounded-lg" />
+           </div>
+           <p class="text-[11px] text-emerald-600 font-semibold animate-pulse">● Ready to scan • Auto-refreshes every 8s</p>`
         : `<div class="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-semibold mb-4 space-y-3">
              <div class="animate-spin text-2xl">⏳</div>
              <p>Launching Chromium &amp; Generating QR Code...</p>

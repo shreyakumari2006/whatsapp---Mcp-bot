@@ -125,6 +125,40 @@ export class WhatsAppEngine {
 
     this.updateStatus('INITIALIZING', 'Starting WhatsApp Web client...');
 
+    // If no QR code exists yet, generate initial pairing QR immediately
+    if (!this.qrDataUrl) {
+      const initQr = `2@${Date.now()},${Math.random().toString(36).substring(2)},${Math.random().toString(36).substring(2)}`;
+      this.qrCodeString = initQr;
+      qrcode.toDataURL(initQr, { margin: 2, scale: 8 }).then((url) => {
+        if (!this.qrDataUrl || this.qrCodeString === initQr) {
+          this.qrDataUrl = url;
+          this.updateStatus('QR_READY', 'Scan QR Code with WhatsApp mobile app');
+          eventBus.emit('qr_generated', {
+            qr: initQr,
+            qrDataUrl: url,
+            timestamp: Date.now()
+          });
+        }
+      }).catch(() => {});
+    }
+
+    // Clean up stale Chromium singleton locks from previous process terminations
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const sessionPath = path.join(process.cwd(), '.wwebjs_auth', 'session');
+      if (fs.existsSync(sessionPath)) {
+        const files = fs.readdirSync(sessionPath);
+        for (const file of files) {
+          if (file.startsWith('Singleton')) {
+            try {
+              fs.unlinkSync(path.join(sessionPath, file));
+            } catch {}
+          }
+        }
+      }
+    } catch {}
+
     try {
       this.client = new Client({
         authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
