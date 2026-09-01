@@ -122,7 +122,7 @@ export default function App() {
         user={user}
         pendingApprovals={pendingApprovals}
         rules={rules}
-        pendingPaymentsCount={paymentTargets.filter((t) => t.stage !== 'PAID').length}
+        pendingPaymentsCount={(paymentTargets || []).filter((t) => t && t.stage !== 'PAID').length}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onOpenQR={() => setShowQRModal(true)}

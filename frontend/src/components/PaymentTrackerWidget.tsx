@@ -5,18 +5,19 @@ import {
   Send, 
   Sparkles, 
   Clock, 
-  MessageSquareQuote,
-  ShieldCheck,
-  Edit2,
-  Check,
-  Search,
-  Phone,
-  RotateCcw
+  MessageSquareQuote, 
+  ShieldCheck, 
+  Edit2, 
+  Check, 
+  Search, 
+  Phone, 
+  RotateCcw,
+  X
 } from 'lucide-react';
 import type { PaymentTarget, PaymentStage } from '../types/whatsapp';
 
 interface PaymentTrackerWidgetProps {
-  targets: PaymentTarget[];
+  targets?: PaymentTarget[];
   onInitiateCheckin: (id: string) => Promise<void>;
   onDispatchPaymentLink: (id: string) => Promise<void>;
   onSettlePayment: (id: string) => Promise<void>;
@@ -25,28 +26,31 @@ interface PaymentTrackerWidgetProps {
 }
 
 export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
-  targets,
+  targets = [],
   onInitiateCheckin,
   onDispatchPaymentLink,
   onSettlePayment,
   onUpdateTarget,
   onAutoMatch
 }) => {
+  const safeTargets = Array.isArray(targets) ? targets : [];
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editPhone, setEditPhone] = useState('');
   const [isMatching, setIsMatching] = useState(false);
   const [matchResult, setMatchResult] = useState<string | null>(null);
 
-  const pendingTargets = targets.filter((t) => t.stage !== 'PAID');
-  const totalOutstanding = pendingTargets.reduce((sum, t) => sum + t.amount, 0);
+  const pendingTargets = safeTargets.filter((t) => t && t.stage !== 'PAID');
+  const totalOutstanding = pendingTargets.reduce((sum, t) => sum + (Number(t?.amount) || 0), 0);
 
   const handleStartEdit = (target: PaymentTarget) => {
+    if (!target) return;
     setEditingId(target.id);
-    setEditPhone(target.phone || target.contactJid.replace('@c.us', ''));
+    const initialPhone = target.phone || (target.contactJid ? target.contactJid.replace('@c.us', '') : '');
+    setEditPhone(initialPhone);
   };
 
   const handleSaveEdit = async (targetId: string) => {
-    if (!editPhone.trim()) {
+    if (!editPhone || !editPhone.trim()) {
       setEditingId(null);
       return;
     }
@@ -55,10 +59,14 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
     const contactJid = `${cleanNumber}@c.us`;
 
     if (onUpdateTarget) {
-      await onUpdateTarget(targetId, {
-        phone: formattedPhone,
-        contactJid: contactJid
-      });
+      try {
+        await onUpdateTarget(targetId, {
+          phone: formattedPhone,
+          contactJid: contactJid
+        });
+      } catch (err) {
+        console.error('Failed to update contact:', err);
+      }
     }
     setEditingId(null);
   };
@@ -70,7 +78,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
     try {
       const res = await onAutoMatch();
       if (res && res.matched > 0) {
-        setMatchResult(`✔ Auto-linked ${res.matched} contact(s) from WhatsApp!`);
+        setMatchResult(`✔ Auto-linked ${res.matched} contact(s) directly from WhatsApp!`);
       } else {
         setMatchResult('ℹ️ No exact name match found. You can enter phone numbers directly using ✏️ Edit.');
       }
@@ -82,7 +90,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
     }
   };
 
-  const getStageBadge = (stage: PaymentStage) => {
+  const getStageBadge = (stage?: PaymentStage) => {
     switch (stage) {
       case 'WARMUP_CHECKIN':
         return (
@@ -110,6 +118,12 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
           <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
             <CheckCircle2 size={12} className="text-emerald-600" />
             4. Settled &amp; Paid
+          </span>
+        );
+      default:
+        return (
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-bold">
+            Pending
           </span>
         );
     }
@@ -160,7 +174,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
           <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-center">
             <span className="text-[10px] text-slate-400 block font-semibold">Active Targets</span>
             <span className="text-xs font-bold text-slate-800 font-mono">
-              {pendingTargets.length} / {targets.length}
+              {pendingTargets.length} / {safeTargets.length}
             </span>
           </div>
         </div>
@@ -175,14 +189,22 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
 
       {/* Target Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {targets.map((target) => {
-          const initials = target.name
+        {safeTargets.map((target) => {
+          if (!target) return null;
+
+          const targetName = target.name || 'Recipient';
+          const initials = targetName
             .split(' ')
-            .map((n) => n[0])
+            .filter(Boolean)
+            .map((n) => n[0] || '')
             .join('')
-            .toUpperCase();
+            .toUpperCase() || 'U';
+
           const isPaid = target.stage === 'PAID';
           const isEditing = editingId === target.id;
+          const displayPhone = target.phone || (target.contactJid ? target.contactJid.replace('@c.us', '') : 'No number set');
+          const destinationJid = target.contactJid || 'Not linked';
+          const displayAmount = (Number(target.amount) || 0).toLocaleString('en-IN');
 
           return (
             <div
@@ -203,7 +225,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                       {initials}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{target.name}</h4>
+                      <h4 className="text-sm font-bold text-slate-900">{targetName}</h4>
                       
                       {/* Phone Number / Direct JID Display & Editor */}
                       {isEditing ? (
@@ -213,8 +235,12 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                             value={editPhone}
                             onChange={(e) => setEditPhone(e.target.value)}
                             placeholder="+91 98765 43210"
-                            className="text-xs px-2 py-0.5 border border-emerald-400 rounded-md w-36 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                            className="text-xs px-2 py-0.5 border border-emerald-400 rounded-md w-32 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
                             autoFocus
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') handleSaveEdit(target.id);
+                              if (e.key === 'Escape') setEditingId(null);
+                            }}
                           />
                           <button
                             onClick={() => handleSaveEdit(target.id)}
@@ -223,12 +249,19 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                           >
                             <Check size={12} />
                           </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            className="p-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300"
+                            title="Cancel"
+                          >
+                            <X size={12} />
+                          </button>
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className="text-[11px] text-slate-600 font-mono font-semibold flex items-center gap-1">
                             <Phone size={10} className="text-slate-400" />
-                            {target.phone || target.contactJid.replace('@c.us', '')}
+                            {displayPhone}
                           </span>
                           <button
                             onClick={() => handleStartEdit(target)}
@@ -247,7 +280,9 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                 {/* Recipient Destination Preview */}
                 <div className="mb-2 px-2.5 py-1 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
                   <span>Destination:</span>
-                  <span className="font-bold text-slate-700 truncate max-w-[140px]">{target.contactJid}</span>
+                  <span className="font-bold text-slate-700 truncate max-w-[140px]" title={destinationJid}>
+                    {destinationJid}
+                  </span>
                 </div>
 
                 {/* Amount & Reason */}
@@ -256,14 +291,14 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                     <span className="text-[10px] font-semibold text-slate-400 uppercase block">
                       Settlement Item
                     </span>
-                    <span className="text-xs font-bold text-slate-800">{target.reason}</span>
+                    <span className="text-xs font-bold text-slate-800">{target.reason || 'Settlement'}</span>
                   </div>
                   <div className="text-right">
                     <span className="text-[10px] font-semibold text-slate-400 uppercase block">
                       Amount Due
                     </span>
                     <span className="text-sm font-black text-slate-900 font-mono">
-                      ₹{target.amount.toLocaleString('en-IN')}
+                      ₹{displayAmount}
                     </span>
                   </div>
                 </div>
