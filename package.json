@@ -5,11 +5,14 @@
   "type": "module",
   "description": "Production-ready WhatsApp MCP Server with Auto-Responder, Urgency Triage, and Real-time Dashboard",
   "main": "dist/index.js",
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
     "dev": "node scripts/build-widgets.cjs && nitrostack-cli dev",
     "dev:all": "concurrently -n \"backend,frontend\" -c \"emerald.bold,cyan.bold\" \"npm run dev\" \"cd frontend && npm run dev\"",
     "build:widgets": "node scripts/build-widgets.cjs",
-    "build:frontend": "cd frontend && npm run build",
+    "build:frontend": "cd frontend && npm install && npm run build",
     "build": "node scripts/build-widgets.cjs && npm run build:frontend && nitrostack-cli build",
     "deploy": "npx @nitrostack/cli deploy",
     "start": "node dist/index.js",
