@@ -162,6 +162,10 @@ export class WhatsAppEngine {
     try {
       this.client = new Client({
         authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
+        webVersionCache: {
+          type: 'remote',
+          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-js/main/dist/wppconnect-wa.js'
+        },
         puppeteer: {
           headless: headless ? 'new' : false,
           args: [
