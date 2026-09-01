@@ -148,6 +148,8 @@ export class WhatsAppEngine {
 
     try {
       this.client = new Client({
+        authTimeoutMs: 600000,
+        qrMaxRetries: 0,
         puppeteer: {
           headless: true,
           args: [

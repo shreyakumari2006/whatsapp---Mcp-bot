@@ -126,13 +126,10 @@ export function createApiServer(): express.Express {
   app.get('/qr', async (req: Request, res: Response) => {
     let status = whatsappEngine.getStatus();
     
-    // Auto-trigger WhatsApp engine initialization if not already initialized
     if (status.status === 'DISCONNECTED' && !status.qrDataUrl) {
       whatsappEngine.initializeClient(true).catch(() => {});
       status = whatsappEngine.getStatus();
     }
-
-    const qrImage = status.qrDataUrl;
 
     res.setHeader('Content-Type', 'text/html');
     res.send(`<!DOCTYPE html>
@@ -142,43 +139,135 @@ export function createApiServer(): express.Express {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Scan WhatsApp Pairing QR Code</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <meta http-equiv="refresh" content="8">
 </head>
-<body class="bg-slate-100 min-h-screen flex items-center justify-center p-4 font-sans text-slate-900">
-  <div class="bg-white p-8 rounded-3xl shadow-xl border border-slate-200 text-center max-w-sm w-full">
-    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 mx-auto flex items-center justify-center mb-4 text-2xl font-bold">
+<body class="bg-gradient-to-br from-slate-900 via-slate-800 to-emerald-950 min-h-screen flex items-center justify-center p-4 font-sans text-slate-100">
+  <div class="bg-slate-900/90 backdrop-blur-xl p-8 rounded-3xl shadow-2xl border border-slate-700/80 text-center max-w-md w-full">
+    <div class="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 mx-auto flex items-center justify-center mb-4 text-3xl font-bold">
       📲
     </div>
-    <h1 class="text-xl font-bold text-slate-900">Link WhatsApp Device</h1>
-    <p class="text-xs text-slate-500 mt-1 mb-6 leading-relaxed">
-      Open <strong>WhatsApp</strong> on your phone &gt; <strong>Settings</strong> &gt; <strong>Linked Devices</strong> &gt; <strong>Link a Device</strong>.
+    <h1 class="text-2xl font-bold text-white tracking-tight">Link WhatsApp Bot</h1>
+    <p class="text-xs text-slate-400 mt-2 mb-6 leading-relaxed">
+      1. Open <strong class="text-emerald-400">WhatsApp</strong> on your mobile phone.<br/>
+      2. Go to <strong>Settings</strong> &gt; <strong>Linked Devices</strong> &gt; <strong>Link a Device</strong>.<br/>
+      3. Point your camera at the QR code below.
     </p>
 
-    ${
-      status.status === 'CONNECTED' || status.status === 'AUTHENTICATED'
-        ? `<div class="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl text-emerald-800 text-sm font-bold mb-4">
-             ✅ WhatsApp is Connected! ${status.user?.pushname ? `(${status.user.pushname})` : ''}
-           </div>
-           <a href="/" class="inline-block px-5 py-2.5 bg-emerald-600 text-white rounded-xl font-bold text-xs shadow hover:bg-emerald-700 transition">Go to Dashboard</a>`
-        : qrImage
-        ? `<div class="p-4 bg-white border-2 border-emerald-500 rounded-2xl shadow-inner inline-block mb-4">
-             <img src="${qrImage}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto rounded-lg" />
-           </div>
-           <p class="text-[11px] text-emerald-600 font-semibold animate-pulse">● Ready to scan • Auto-refreshes every 8s</p>`
-        : `<div class="p-6 bg-amber-50 border border-amber-200 rounded-2xl text-amber-800 text-xs font-semibold mb-4 space-y-3">
-             <div class="animate-spin text-2xl">⏳</div>
-             <p>Launching Chromium &amp; Generating QR Code...</p>
-             <p class="text-[10px] text-amber-600">Page will refresh automatically.</p>
-           </div>`
-    }
+    <div id="qr-container" class="my-4 flex flex-col items-center justify-center min-h-[280px]">
+      <div id="loading-state" class="p-8 bg-slate-800/80 border border-slate-700 rounded-2xl text-slate-300 text-xs font-semibold space-y-3 ${status.qrDataUrl || status.status === 'CONNECTED' ? 'hidden' : ''}">
+        <div class="animate-spin text-3xl">⏳</div>
+        <p class="text-slate-200 font-medium">Launching WhatsApp Engine...</p>
+        <p class="text-[11px] text-emerald-400 font-mono">Generating fresh pairing QR code...</p>
+      </div>
 
-    <div class="mt-4 pt-4 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-400">
-      <span>Status: <strong class="font-mono font-bold text-slate-700">${status.status}</strong></span>
-      <button onclick="fetch('/api/auth/reset', {method:'POST'}).then(() => location.reload())" class="text-xs text-emerald-600 font-semibold hover:underline">
-        🔄 Reset / New QR
+      <div id="qr-image-wrapper" class="p-4 bg-white rounded-2xl shadow-xl border-4 border-emerald-500/80 inline-block ${status.qrDataUrl && status.status !== 'CONNECTED' ? '' : 'hidden'}">
+        <img id="qr-image" src="${status.qrDataUrl || ''}" alt="WhatsApp QR Code" class="w-64 h-64 mx-auto rounded-lg block" />
+      </div>
+
+      <div id="connected-state" class="p-6 bg-emerald-950/80 border border-emerald-500/40 rounded-2xl text-emerald-300 text-sm font-bold space-y-3 w-full ${status.status === 'CONNECTED' || status.status === 'AUTHENTICATED' ? '' : 'hidden'}">
+        <div class="text-3xl">🎉</div>
+        <p class="text-base text-white font-bold">WhatsApp Connected Successfully!</p>
+        <p id="connected-user" class="text-xs text-emerald-300/80 font-mono">${status.user?.pushname || status.user?.id || 'Active Session'}</p>
+        <a href="/" class="inline-block mt-2 px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl text-xs shadow-lg transition">
+          🚀 Open Command Center Dashboard
+        </a>
+      </div>
+    </div>
+
+    <div id="live-indicator" class="text-xs text-emerald-400 font-semibold flex items-center justify-center gap-2 mb-4">
+      <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+      <span id="status-label">Live Stream Active • Auto-refreshes seamlessly</span>
+    </div>
+
+    <div class="pt-4 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+      <span>Status: <strong id="status-text" class="font-mono text-emerald-400 uppercase">${status.status}</strong></span>
+      <button id="btn-reset" onclick="resetQR()" class="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg text-xs font-semibold border border-slate-700 transition flex items-center gap-1.5">
+        <span>🔄</span> New QR Code
       </button>
     </div>
   </div>
+
+  <script>
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        updateUI(data);
+      } catch (e) {}
+    }
+
+    function updateUI(data) {
+      const statusText = document.getElementById('status-text');
+      const statusLabel = document.getElementById('status-label');
+      const loadingState = document.getElementById('loading-state');
+      const qrWrapper = document.getElementById('qr-image-wrapper');
+      const qrImg = document.getElementById('qr-image');
+      const connectedState = document.getElementById('connected-state');
+      const connectedUser = document.getElementById('connected-user');
+
+      if (statusText) statusText.textContent = data.status || 'UNKNOWN';
+
+      if (data.status === 'CONNECTED' || data.status === 'AUTHENTICATED') {
+        loadingState.classList.add('hidden');
+        qrWrapper.classList.add('hidden');
+        connectedState.classList.remove('hidden');
+        if (connectedUser && data.user) {
+          connectedUser.textContent = (data.user.pushname ? data.user.pushname + ' • ' : '') + (data.user.id || '');
+        }
+        if (statusLabel) statusLabel.textContent = 'Device Linked & Ready';
+      } else if (data.qrDataUrl) {
+        loadingState.classList.add('hidden');
+        connectedState.classList.add('hidden');
+        qrWrapper.classList.remove('hidden');
+        if (qrImg.src !== data.qrDataUrl) {
+          qrImg.src = data.qrDataUrl;
+        }
+        if (statusLabel) statusLabel.textContent = 'Point phone camera at QR Code';
+      } else {
+        qrWrapper.classList.add('hidden');
+        connectedState.classList.add('hidden');
+        loadingState.classList.remove('hidden');
+        if (statusLabel) statusLabel.textContent = 'Generating QR code...';
+      }
+    }
+
+    async function resetQR() {
+      const btn = document.getElementById('btn-reset');
+      if (btn) btn.innerHTML = '<span>⏳</span> Generating...';
+      try {
+        await fetch('/api/auth/reset', { method: 'POST' });
+        setTimeout(pollStatus, 1500);
+      } catch (e) {}
+      setTimeout(() => {
+        if (btn) btn.innerHTML = '<span>🔄</span> New QR Code';
+      }, 3000);
+    }
+
+    // Connect SSE Stream for real-time instant QR & Status updates
+    try {
+      const evt = new EventSource('/api/stream');
+      evt.addEventListener('qr_generated', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          if (d.qrDataUrl) updateUI({ status: 'QR_READY', qrDataUrl: d.qrDataUrl });
+        } catch (err) {}
+      });
+      evt.addEventListener('ready', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          updateUI({ status: 'CONNECTED', user: d.user });
+        } catch (err) {}
+      });
+      evt.addEventListener('status_change', (e) => {
+        try {
+          const d = JSON.parse(e.data);
+          updateUI({ status: d.status });
+        } catch (err) {}
+      });
+    } catch (e) {}
+
+    // Regular polling fallback every 2.5 seconds
+    setInterval(pollStatus, 2500);
+  </script>
 </body>
 </html>`);
   });
