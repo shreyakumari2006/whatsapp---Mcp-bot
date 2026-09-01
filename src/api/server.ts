@@ -17,6 +17,26 @@ export function createApiServer(): express.Express {
   }));
   app.use(express.json());
 
+  // Mount NitroStudio Widget routes
+  const widgetOutDir = path.join(process.cwd(), 'src/widgets/out');
+  app.get(['/:widget', '/widgets/:widget', '/:widget/', '/widgets/:widget/'], (req: Request, res: Response, next: any) => {
+    const raw = req.params.widget;
+    const w = Array.isArray(raw) ? raw[0] : raw;
+    if (!w) return next();
+    const f1 = path.join(widgetOutDir, w, 'index.html');
+    const f2 = path.join(widgetOutDir, `${w}.html`);
+    if (fs.existsSync(f1)) {
+      res.setHeader('Content-Type', 'text/html');
+      return res.sendFile(f1);
+    }
+    if (fs.existsSync(f2)) {
+      res.setHeader('Content-Type', 'text/html');
+      return res.sendFile(f2);
+    }
+    next();
+  });
+  app.use('/widgets', express.static(widgetOutDir));
+
   // SSE Event Stream for Live Dashboard
   app.get('/api/stream', (req: Request, res: Response) => {
     res.setHeader('Content-Type', 'text/event-stream');

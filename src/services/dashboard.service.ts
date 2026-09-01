@@ -27,7 +27,8 @@ export class DashboardService implements OnApplicationBootstrap, OnApplicationSh
 
       srv.once('error', (err: any) => {
         if (err.code === 'EADDRINUSE') {
-          tryListen(port + 1, attemptsLeft - 1);
+          const nextPort = (port >= 3000 && port <= 3002) ? 3010 : port + 1;
+          tryListen(nextPort, attemptsLeft - 1);
         } else {
           console.error('Express server error:', err.message);
         }
