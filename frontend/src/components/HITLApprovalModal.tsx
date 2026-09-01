@@ -27,13 +27,9 @@ export const HITLApprovalModal: React.FC<HITLApprovalModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleToneChange = (apprId: string, tone: AIDraftTone) => {
+  const handleToneClick = async (apprId: string, tone: AIDraftTone) => {
     setSelectedTone((prev) => ({ ...prev, [apprId]: tone }));
-  };
-
-  const handleGenerate = async (apprId: string) => {
     if (!onGenerateDraft) return;
-    const tone = selectedTone[apprId] || 'professional';
     const custom = customInstructions[apprId];
 
     setIsGenerating((prev) => ({ ...prev, [apprId]: true }));
@@ -43,9 +39,16 @@ export const HITLApprovalModal: React.FC<HITLApprovalModalProps> = ({
         setDraftResponses((prev) => ({ ...prev, [apprId]: result }));
         setEditedMessages((prev) => ({ ...prev, [apprId]: result.suggestedReply }));
       }
+    } catch (err) {
+      console.error('Error generating AI draft:', err);
     } finally {
       setIsGenerating((prev) => ({ ...prev, [apprId]: false }));
     }
+  };
+
+  const handleGenerate = async (apprId: string) => {
+    const tone = selectedTone[apprId] || 'professional';
+    await handleToneClick(apprId, tone);
   };
 
   const tones: Array<{ id: AIDraftTone; label: string; icon: string }> = [
@@ -147,11 +150,11 @@ export const HITLApprovalModal: React.FC<HITLApprovalModalProps> = ({
                         <button
                           key={t.id}
                           type="button"
-                          onClick={() => handleToneChange(appr.id, t.id)}
-                          className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all border ${
+                          onClick={() => handleToneClick(appr.id, t.id)}
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
                             currentTone === t.id
-                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs'
-                              : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-100'
+                              ? 'bg-emerald-600 text-white border-emerald-600 shadow-xs ring-2 ring-emerald-200'
+                              : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
                           }`}
                         >
                           {t.label}
