@@ -148,25 +148,15 @@ export class WhatsAppEngine {
 
     try {
       this.client = new Client({
-        authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
-        webVersionCache: {
-          type: 'none'
-        },
         puppeteer: {
           headless: true,
-          protocolTimeout: 120000,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
             '--disable-dev-shm-usage',
-            '--disable-accelerated-2d-canvas',
-            '--no-first-run',
-            '--no-zygote',
             '--disable-gpu',
-            '--disable-extensions',
-            '--disable-web-security',
-            '--dns-result-order=ipv4first',
-            '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
+            '--disable-quic',
+            '--dns-result-order=ipv4first'
           ]
         }
       });
