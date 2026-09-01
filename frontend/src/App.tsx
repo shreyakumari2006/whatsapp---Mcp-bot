@@ -118,7 +118,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex h-screen w-screen bg-[#111b21] text-[#e9edef] font-sans antialiased overflow-hidden select-none">
+    <div className="flex h-screen w-screen bg-[#f0f2f5] text-[#111b21] font-sans antialiased overflow-hidden select-none">
 
       {/* LEFT SIDEBAR: 30% width, min 340px, max 450px */}
       <WhatsAppSidebar
