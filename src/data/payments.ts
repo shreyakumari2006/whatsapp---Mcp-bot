@@ -113,6 +113,73 @@ export class PaymentCollectionManager {
     return { target, message };
   }
 
+  public updateTarget(id: string, updates: Partial<PaymentTarget>): PaymentTarget | null {
+    const target = this.targets.get(id);
+    if (!target) return null;
+
+    if (updates.phone) {
+      let clean = updates.phone.replace(/[^0-9]/g, '');
+      if (!updates.contactJid && clean) {
+        updates.contactJid = `${clean}@c.us`;
+      }
+    }
+
+    if (updates.contactJid && !updates.contactJid.includes('@')) {
+      const clean = updates.contactJid.replace(/[^0-9]/g, '');
+      updates.contactJid = `${clean}@c.us`;
+    }
+
+    Object.assign(target, updates);
+    target.lastUpdated = Date.now();
+
+    eventBus.emit('payment_state_update' as any, {
+      target,
+      action: 'contact_updated',
+      timestamp: Date.now()
+    });
+
+    return target;
+  }
+
+  public autoMatchContacts(contacts: Array<{ id: string; name?: string; number?: string }>): { matched: number; updates: Array<{ targetName: string; matchedName: string; jid: string }> } {
+    let matched = 0;
+    const updates: Array<{ targetName: string; matchedName: string; jid: string }> = [];
+
+    for (const target of this.targets.values()) {
+      const queryParts = target.name.toLowerCase().split(' ').filter(p => p.length > 2);
+      
+      const found = contacts.find(c => {
+        const name = (c.name || '').toLowerCase();
+        const jid = c.id.toLowerCase();
+        return queryParts.some(part => name.includes(part) || jid.includes(part));
+      });
+
+      if (found) {
+        target.contactJid = found.id;
+        if (found.number) {
+          target.phone = `+${found.number}`;
+        } else if (found.id.includes('@c.us')) {
+          target.phone = `+${found.id.split('@')[0]}`;
+        }
+        target.lastUpdated = Date.now();
+        matched++;
+        updates.push({
+          targetName: target.name,
+          matchedName: found.name || found.id,
+          jid: found.id
+        });
+
+        eventBus.emit('payment_state_update' as any, {
+          target,
+          action: 'contact_auto_matched',
+          timestamp: Date.now()
+        });
+      }
+    }
+
+    return { matched, updates };
+  }
+
   public markSettled(id: string): PaymentTarget | null {
     const target = this.targets.get(id);
     if (!target) return null;

@@ -389,6 +389,43 @@ export function useWhatsAppSSE(baseUrl = '') {
     }
   };
 
+  const updatePaymentTarget = async (targetId: string, updates: Partial<PaymentTarget>) => {
+    try {
+      setPaymentTargets((prev) =>
+        prev.map((t) => (t.id === targetId ? { ...t, ...updates, lastUpdated: Date.now() } : t))
+      );
+      const res = await fetch(`${baseUrl}/api/payments/${targetId}/update-contact`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.target) {
+          setPaymentTargets((prev) => prev.map((t) => (t.id === targetId ? data.target : t)));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to update payment target:', e);
+    }
+  };
+
+  const autoMatchPaymentContacts = async () => {
+    try {
+      const res = await fetch(`${baseUrl}/api/payments/auto-match`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.targets) {
+          setPaymentTargets(data.targets);
+        }
+        return data;
+      }
+    } catch (e) {
+      console.error('Failed to auto match payment contacts:', e);
+    }
+    return null;
+  };
+
   return {
     status,
     user,
@@ -413,6 +450,8 @@ export function useWhatsAppSSE(baseUrl = '') {
     cancelFlowSession,
     initiatePaymentCheckin,
     dispatchPaymentLink,
-    settlePayment
+    settlePayment,
+    updatePaymentTarget,
+    autoMatchPaymentContacts
   };
 }

@@ -35,7 +35,9 @@ export default function App() {
     cancelFlowSession,
     initiatePaymentCheckin,
     dispatchPaymentLink,
-    settlePayment
+    settlePayment,
+    updatePaymentTarget,
+    autoMatchPaymentContacts
   } = useWhatsAppSSE();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -177,6 +179,8 @@ export default function App() {
               onInitiateCheckin={initiatePaymentCheckin}
               onDispatchPaymentLink={dispatchPaymentLink}
               onSettlePayment={settlePayment}
+              onUpdateTarget={updatePaymentTarget}
+              onAutoMatch={autoMatchPaymentContacts}
             />
           </div>
         </div>

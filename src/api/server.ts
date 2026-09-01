@@ -287,13 +287,21 @@ export function createApiServer(): express.Express {
     res.json({ success: true, ...result });
   });
 
-  app.post('/api/payments/:id/settle', async (req: Request, res: Response) => {
+  app.post('/api/payments/:id/update-contact', async (req: Request, res: Response) => {
     const rawId = req.params.id;
     const targetId = Array.isArray(rawId) ? rawId[0] : rawId;
+    const { phone, contactJid, name, amount } = req.body;
     const { paymentManager } = await import('../data/payments.js');
-    const result = paymentManager.markSettled(targetId);
-    if (!result) return res.status(404).json({ error: 'Target not found' });
-    res.json({ success: true, target: result });
+    const updated = paymentManager.updateTarget(targetId, { phone, contactJid, name, amount });
+    if (!updated) return res.status(404).json({ error: 'Target not found' });
+    res.json({ success: true, target: updated });
+  });
+
+  app.post('/api/payments/auto-match', async (req: Request, res: Response) => {
+    const { paymentManager } = await import('../data/payments.js');
+    const contacts = whatsappEngine.getContacts();
+    const result = paymentManager.autoMatchContacts(contacts);
+    res.json({ success: true, ...result, targets: paymentManager.getTargets() });
   });
 
   // Auto-Reply Rules CRUD & Toggle
