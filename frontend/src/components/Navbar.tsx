@@ -7,12 +7,14 @@ interface NavbarProps {
   user: { id: string; pushname: string } | null;
   pendingApprovals: PendingApproval[];
   rules: AutoReplyRule[];
+  pendingPaymentsCount?: number;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
   onOpenQR: () => void;
   onOpenApprovals: () => void;
   onOpenRuleStudio: () => void;
   onOpenAudit: () => void;
+  onOpenPayments: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -20,12 +22,14 @@ export const Navbar: React.FC<NavbarProps> = ({
   user,
   pendingApprovals,
   rules,
+  pendingPaymentsCount = 0,
   searchQuery,
   setSearchQuery,
   onOpenQR,
   onOpenApprovals,
   onOpenRuleStudio,
-  onOpenAudit
+  onOpenAudit,
+  onOpenPayments
 }) => {
   const isOnline = status === 'READY' || status === 'AUTHENTICATED';
   const isQr = status === 'QR_READY';
@@ -105,6 +109,15 @@ export const Navbar: React.FC<NavbarProps> = ({
             <span>{pendingApprovals.length} Approval{pendingApprovals.length > 1 ? 's' : ''}</span>
           </button>
         )}
+
+        {/* Payment Agent Button */}
+        <button
+          onClick={onOpenPayments}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-lg text-xs font-bold transition-colors whitespace-nowrap shadow-2xs"
+        >
+          <span className="text-sm">💳</span>
+          <span>Payment Agent {pendingPaymentsCount > 0 && `(${pendingPaymentsCount})`}</span>
+        </button>
 
         {/* Rule Studio Button */}
         <button

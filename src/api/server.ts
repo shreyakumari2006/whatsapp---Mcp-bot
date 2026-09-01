@@ -261,6 +261,41 @@ export function createApiServer(): express.Express {
     res.json({ success, contactJid });
   });
 
+  // Conversational Payment Collection Endpoints
+  app.get('/api/payments', async (req: Request, res: Response) => {
+    const { paymentManager } = await import('../data/payments.js');
+    res.json(paymentManager.getTargets());
+  });
+
+  app.post('/api/payments/:id/checkin', async (req: Request, res: Response) => {
+    const rawId = req.params.id;
+    const targetId = Array.isArray(rawId) ? rawId[0] : rawId;
+    const { paymentManager } = await import('../data/payments.js');
+    const result = paymentManager.initiateCheckin(targetId);
+    if (!result) return res.status(404).json({ error: 'Target not found' });
+    await whatsappEngine.sendMessage(result.target.contactJid, result.message, false);
+    res.json({ success: true, ...result });
+  });
+
+  app.post('/api/payments/:id/dispatch-link', async (req: Request, res: Response) => {
+    const rawId = req.params.id;
+    const targetId = Array.isArray(rawId) ? rawId[0] : rawId;
+    const { paymentManager } = await import('../data/payments.js');
+    const result = paymentManager.dispatchPaymentRequest(targetId);
+    if (!result) return res.status(404).json({ error: 'Target not found' });
+    await whatsappEngine.sendMessage(result.target.contactJid, result.message, false);
+    res.json({ success: true, ...result });
+  });
+
+  app.post('/api/payments/:id/settle', async (req: Request, res: Response) => {
+    const rawId = req.params.id;
+    const targetId = Array.isArray(rawId) ? rawId[0] : rawId;
+    const { paymentManager } = await import('../data/payments.js');
+    const result = paymentManager.markSettled(targetId);
+    if (!result) return res.status(404).json({ error: 'Target not found' });
+    res.json({ success: true, target: result });
+  });
+
   // Auto-Reply Rules CRUD & Toggle
   app.get('/api/rules', (req: Request, res: Response) => {
     const status = (req.query.status as any) || 'all';

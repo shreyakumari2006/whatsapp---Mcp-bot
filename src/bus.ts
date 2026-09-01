@@ -142,6 +142,11 @@ export interface EventBusMap {
   flow_state_change: FlowStateChangeEvent;
   flow_started: ConversationSession;
   flow_completed: FlowCompletedEvent;
+  payment_state_update: {
+    target: any;
+    action: string;
+    timestamp: number;
+  };
 }
 
 class TypedEventEmitter extends EventEmitter {

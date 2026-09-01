@@ -125,6 +125,21 @@ export interface SystemHealthState {
   memoryUsageMB: number;
 }
 
+export type PaymentStage = 'WARMUP_CHECKIN' | 'CONTEXT_BRIDGE' | 'PAYMENT_LINK_SENT' | 'PAID';
+
+export interface PaymentTarget {
+  id: string;
+  name: string;
+  phone: string;
+  contactJid: string;
+  amount: number;
+  currency: string;
+  reason: string;
+  stage: PaymentStage;
+  lastMessageSent?: string;
+  lastUpdated: number;
+}
+
 export type SSEEvent =
   | { type: 'initial_state'; data: any }
   | { type: 'qr_generated'; data: { qr: string; qrDataUrl?: string; timestamp: number } }
@@ -138,4 +153,5 @@ export type SSEEvent =
   | { type: 'analytics_update'; data: TelemetryMetrics }
   | { type: 'flow_state_change'; data: { session: ConversationSession; action: string; timestamp: number } }
   | { type: 'flow_started'; data: ConversationSession }
-  | { type: 'flow_completed'; data: { contactJid: string; flowId: string; flowName: string; result: any } };
+  | { type: 'flow_completed'; data: { contactJid: string; flowId: string; flowName: string; result: any } }
+  | { type: 'payment_state_update'; data: { target: PaymentTarget; action: string; timestamp: number } };

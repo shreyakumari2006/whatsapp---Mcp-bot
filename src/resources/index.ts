@@ -80,6 +80,24 @@ export const MCP_RESOURCES: Record<string, MCPResourceDefinition> = {
         }
       };
     }
+  },
+
+  'whatsapp://payments/pending': {
+    uri: 'whatsapp://payments/pending',
+    name: 'Pending Payment Settlements',
+    description: 'Current pending payment targets, stage progressions (Warmup, Context Bridge, Link Sent, Paid), and outstanding balances.',
+    mimeType: 'application/json',
+    handler: async () => {
+      const { paymentManager } = await import('../data/payments.js');
+      const targets = paymentManager.getTargets();
+      const pending = targets.filter(t => t.stage !== 'PAID');
+      return {
+        totalDebtors: targets.length,
+        pendingCount: pending.length,
+        totalOutstandingINR: pending.reduce((sum, t) => sum + t.amount, 0),
+        targets
+      };
+    }
   }
 };
 

@@ -9,6 +9,8 @@ import { HITLApprovalModal } from './components/HITLApprovalModal';
 import { RuleStudio } from './components/RuleStudio';
 import { TerminalLogDrawer } from './components/TerminalLogDrawer';
 import { QROverlay } from './components/QROverlay';
+import { PaymentTrackerWidget } from './components/PaymentTrackerWidget';
+import { X } from 'lucide-react';
 
 export default function App() {
   const {
@@ -20,6 +22,7 @@ export default function App() {
     pendingApprovals,
     auditLogs,
     activeFlows,
+    paymentTargets,
     analytics,
     selectedChatId,
     setSelectedChatId,
@@ -29,7 +32,10 @@ export default function App() {
     configureRule,
     sendMessage,
     generateAIDraft,
-    cancelFlowSession
+    cancelFlowSession,
+    initiatePaymentCheckin,
+    dispatchPaymentLink,
+    settlePayment
   } = useWhatsAppSSE();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -38,6 +44,7 @@ export default function App() {
   const [showAuditDrawer, setShowAuditDrawer] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showApprovalsModal, setShowApprovalsModal] = useState(false);
+  const [showPaymentsModal, setShowPaymentsModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
   // Group messages by chat ID
@@ -113,12 +120,14 @@ export default function App() {
         user={user}
         pendingApprovals={pendingApprovals}
         rules={rules}
+        pendingPaymentsCount={paymentTargets.filter((t) => t.stage !== 'PAID').length}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onOpenQR={() => setShowQRModal(true)}
         onOpenApprovals={() => setShowApprovalsModal(true)}
         onOpenRuleStudio={() => setShowRuleStudio(true)}
         onOpenAudit={() => setShowAuditDrawer(true)}
+        onOpenPayments={() => setShowPaymentsModal(true)}
       />
 
       {/* 2. LIVE TRIAGE RADAR & TELEMETRY BANNER */}
@@ -152,6 +161,27 @@ export default function App() {
       </div>
 
       {/* 4. MODALS & DRAWERS */}
+      {showPaymentsModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 p-1">
+            <div className="flex justify-end p-3 pb-0">
+              <button
+                onClick={() => setShowPaymentsModal(false)}
+                className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <PaymentTrackerWidget
+              targets={paymentTargets}
+              onInitiateCheckin={initiatePaymentCheckin}
+              onDispatchPaymentLink={dispatchPaymentLink}
+              onSettlePayment={settlePayment}
+            />
+          </div>
+        </div>
+      )}
+
       <HITLApprovalModal
         isOpen={showApprovalsModal}
         onClose={() => setShowApprovalsModal(false)}

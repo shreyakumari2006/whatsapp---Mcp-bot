@@ -1,4 +1,41 @@
-import type { ChatMessage, AutoReplyRule, PendingApproval, AuditLogEntry } from '../types/whatsapp';
+import type { ChatMessage, AutoReplyRule, PendingApproval, AuditLogEntry, PaymentTarget } from '../types/whatsapp';
+
+export const SEED_PAYMENT_TARGETS: PaymentTarget[] = [
+  {
+    id: 'pay_target_1',
+    name: 'Abdhur Rahman',
+    phone: '+91 98765 43210',
+    contactJid: '919876543210@c.us',
+    amount: 2500,
+    currency: 'INR',
+    reason: 'Server hosting',
+    stage: 'WARMUP_CHECKIN',
+    lastUpdated: Date.now() - 3600000 * 4
+  },
+  {
+    id: 'pay_target_2',
+    name: 'Ekansh Patil',
+    phone: '+91 98765 43211',
+    contactJid: '919876543211@c.us',
+    amount: 1800,
+    currency: 'INR',
+    reason: 'API credits',
+    stage: 'CONTEXT_BRIDGE',
+    lastMessageSent: "Hey Ekansh! Hope everything is going well with the project launch.",
+    lastUpdated: Date.now() - 3600000 * 2
+  },
+  {
+    id: 'pay_target_3',
+    name: 'Shreya Pandey',
+    phone: '+91 98765 43212',
+    contactJid: '919876543212@c.us',
+    amount: 3200,
+    currency: 'INR',
+    reason: 'Design assets',
+    stage: 'WARMUP_CHECKIN',
+    lastUpdated: Date.now() - 3600000 * 6
+  }
+];
 
 export const SEED_MESSAGES: ChatMessage[] = [
   {

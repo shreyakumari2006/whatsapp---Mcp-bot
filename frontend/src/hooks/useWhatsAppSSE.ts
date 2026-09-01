@@ -7,16 +7,18 @@ import type {
   WhatsAppConnectionStatus,
   TelemetryMetrics,
   AIDraftTone,
-  AIDraftResponse
+  AIDraftResponse,
+  ConversationSession,
+  PaymentTarget
 } from '../types/whatsapp';
 import { 
   SEED_MESSAGES, 
   SEED_RULES, 
   SEED_PENDING_APPROVALS, 
   SEED_AUDIT_LOGS,
-  SEED_ACTIVE_FLOWS
+  SEED_ACTIVE_FLOWS,
+  SEED_PAYMENT_TARGETS
 } from '../data/seedData';
-import type { ConversationSession } from '../types/whatsapp';
 
 export function useWhatsAppSSE(baseUrl = '') {
   const [status, setStatus] = useState<WhatsAppConnectionStatus>('AUTHENTICATED');
@@ -30,6 +32,7 @@ export function useWhatsAppSSE(baseUrl = '') {
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>(SEED_PENDING_APPROVALS);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(SEED_AUDIT_LOGS);
   const [activeFlows, setActiveFlows] = useState<ConversationSession[]>(SEED_ACTIVE_FLOWS);
+  const [paymentTargets, setPaymentTargets] = useState<PaymentTarget[]>(SEED_PAYMENT_TARGETS);
   const [analytics, setAnalytics] = useState<TelemetryMetrics>({
     triageDistribution: { CRITICAL: 1, URGENT: 1, VIP: 2, NORMAL: 3, NOISE: 1 },
     avgTriageLatencyMs: 38,
@@ -188,6 +191,16 @@ export function useWhatsAppSSE(baseUrl = '') {
           case 'audit_log':
             setAuditLogs((prev) => [data, ...prev.slice(0, 99)]);
             break;
+
+          case 'payment_state_update':
+            setPaymentTargets((prev) => {
+              const updated = data.target;
+              if (!updated) return prev;
+              const exists = prev.some((t) => t.id === updated.id);
+              if (!exists) return [updated, ...prev];
+              return prev.map((t) => (t.id === updated.id ? updated : t));
+            });
+            break;
         }
       } catch (err) {
         console.error('Error parsing SSE event:', err);
@@ -325,6 +338,57 @@ export function useWhatsAppSSE(baseUrl = '') {
     }
   };
 
+  const initiatePaymentCheckin = async (targetId: string) => {
+    try {
+      setPaymentTargets((prev) =>
+        prev.map((t) => (t.id === targetId ? { ...t, stage: 'CONTEXT_BRIDGE', lastUpdated: Date.now() } : t))
+      );
+      const res = await fetch(`${baseUrl}/api/payments/${targetId}/checkin`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.target) {
+          setPaymentTargets((prev) => prev.map((t) => (t.id === targetId ? data.target : t)));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to initiate payment checkin:', e);
+    }
+  };
+
+  const dispatchPaymentLink = async (targetId: string) => {
+    try {
+      setPaymentTargets((prev) =>
+        prev.map((t) => (t.id === targetId ? { ...t, stage: 'PAYMENT_LINK_SENT', lastUpdated: Date.now() } : t))
+      );
+      const res = await fetch(`${baseUrl}/api/payments/${targetId}/dispatch-link`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.target) {
+          setPaymentTargets((prev) => prev.map((t) => (t.id === targetId ? data.target : t)));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to dispatch payment link:', e);
+    }
+  };
+
+  const settlePayment = async (targetId: string) => {
+    try {
+      setPaymentTargets((prev) =>
+        prev.map((t) => (t.id === targetId ? { ...t, stage: 'PAID', lastUpdated: Date.now() } : t))
+      );
+      const res = await fetch(`${baseUrl}/api/payments/${targetId}/settle`, { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.target) {
+          setPaymentTargets((prev) => prev.map((t) => (t.id === targetId ? data.target : t)));
+        }
+      }
+    } catch (e) {
+      console.error('Failed to mark payment settled:', e);
+    }
+  };
+
   return {
     status,
     user,
@@ -334,6 +398,7 @@ export function useWhatsAppSSE(baseUrl = '') {
     pendingApprovals,
     auditLogs,
     activeFlows,
+    paymentTargets,
     analytics,
     isConnectedSSE,
     lastHeartbeat,
@@ -345,6 +410,9 @@ export function useWhatsAppSSE(baseUrl = '') {
     configureRule,
     sendMessage,
     generateAIDraft,
-    cancelFlowSession
+    cancelFlowSession,
+    initiatePaymentCheckin,
+    dispatchPaymentLink,
+    settlePayment
   };
 }

@@ -240,6 +240,67 @@ export const MCP_TOOLS: Record<string, MCPToolDefinition> = {
         rule
       };
     }
+  },
+
+  'get-payment-targets': {
+    name: 'get-payment-targets',
+    description: 'Retrieve seeded payment collection targets (Abdhur Rahman, Ekansh Patil, Shreya Pandey) and current stage progressions.',
+    inputSchema: z.object({
+      status: z.enum(['all', 'pending', 'paid']).optional().default('all').describe('Filter targets by status')
+    }),
+    handler: async (args: { status?: 'all' | 'pending' | 'paid' }) => {
+      const { paymentManager } = await import('../data/payments.js');
+      const targets = paymentManager.getTargets();
+      const filtered = args.status === 'pending'
+        ? targets.filter(t => t.stage !== 'PAID')
+        : args.status === 'paid'
+        ? targets.filter(t => t.stage === 'PAID')
+        : targets;
+      return {
+        count: filtered.length,
+        targets: filtered
+      };
+    }
+  },
+
+  'initiate-payment-conversation': {
+    name: 'initiate-payment-conversation',
+    description: 'Dispatch a casual, friendly warmup check-in message to a debtor before discussing payment settlement.',
+    inputSchema: z.object({
+      targetId: z.string().describe('Target debtor ID (e.g., "pay_target_1" for Abdhur Rahman)')
+    }),
+    handler: async (args: { targetId: string }) => {
+      const { paymentManager } = await import('../data/payments.js');
+      const res = paymentManager.initiateCheckin(args.targetId);
+      if (!res) throw new Error(`Payment target "${args.targetId}" not found`);
+      await whatsappEngine.sendMessage(res.target.contactJid, res.message, false);
+      return {
+        success: true,
+        target: res.target,
+        dispatchedMessage: res.message,
+        stage: res.target.stage
+      };
+    }
+  },
+
+  'dispatch-payment-request': {
+    name: 'dispatch-payment-request',
+    description: 'Dispatch the polite breakdown with the settlement link to a payment target.',
+    inputSchema: z.object({
+      targetId: z.string().describe('Target debtor ID (e.g., "pay_target_1" for Abdhur Rahman)')
+    }),
+    handler: async (args: { targetId: string }) => {
+      const { paymentManager } = await import('../data/payments.js');
+      const res = paymentManager.dispatchPaymentRequest(args.targetId);
+      if (!res) throw new Error(`Payment target "${args.targetId}" not found`);
+      await whatsappEngine.sendMessage(res.target.contactJid, res.message, false);
+      return {
+        success: true,
+        target: res.target,
+        dispatchedMessage: res.message,
+        stage: res.target.stage
+      };
+    }
   }
 };
 
