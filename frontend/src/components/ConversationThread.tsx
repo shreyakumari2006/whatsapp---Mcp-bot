@@ -80,9 +80,9 @@ export const ConversationThread: React.FC<ConversationThreadProps> = ({
 
         <div className="flex items-center gap-2">
           {activeFlow && (
-            <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-300 animate-pulse">
+            <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full bg-amber-50 text-amber-800 border border-amber-300 shadow-2xs animate-pulse">
               <Zap size={13} className="text-amber-600 fill-amber-500" />
-              Flow Active: {activeFlow.currentStep}
+              Flow Active: Birthday RSVP
             </span>
           )}
           <span className="text-xs text-slate-500">Auto-Responder:</span>
