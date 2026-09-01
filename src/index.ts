@@ -1,9 +1,17 @@
 #!/usr/bin/env node
 import 'dotenv/config';
 
-// Ensure NitroStack uses STDIO transport so Express can bind the public web PORT (e.g. 8080 on Railway)
-if (!process.env.NITROSTACK_TRANSPORT) {
-  process.env.NITROSTACK_TRANSPORT = 'stdio';
+// Dual-mode Transport Configuration:
+// 1. Cloud (Railway/Render): STDIO mode for MCP, public PORT for Express web dashboard
+// 2. Local/NitroStudio: Streamable HTTP on port 3002 for NitroStudio, port 3000 for Express dashboard
+if (process.env.RAILWAY_ENVIRONMENT || process.env.RENDER) {
+  process.env.MCP_TRANSPORT_TYPE = 'stdio';
+} else {
+  // Local environment for NitroStudio
+  process.env.MCP_TRANSPORT_TYPE = 'http';
+  if (!process.env.PORT) {
+    process.env.PORT = '3002';
+  }
 }
 
 import { McpApplicationFactory } from '@nitrostack/core';

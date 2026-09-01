@@ -12,7 +12,9 @@ export class DashboardService implements OnApplicationBootstrap, OnApplicationSh
   private widgetServer: http.Server | null = null;
 
   async onApplicationBootstrap() {
-    const defaultPort = Number(process.env.DASHBOARD_PORT || process.env.PORT) || 3000;
+    const defaultPort = Number(
+      process.env.DASHBOARD_PORT || (process.env.RAILWAY_ENVIRONMENT ? process.env.PORT : 3000)
+    ) || 3000;
     const expressApp = createApiServer();
 
     const tryListen = (port: number, attemptsLeft: number) => {
