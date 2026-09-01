@@ -125,24 +125,9 @@ export class WhatsAppEngine {
       this.client = null;
     }
 
+    this.qrDataUrl = null;
+    this.qrCodeString = null;
     this.updateStatus('INITIALIZING', 'Starting WhatsApp Web client...');
-
-    // If no QR code exists yet, generate initial pairing QR immediately
-    if (!this.qrDataUrl) {
-      const initQr = `2@${Date.now()},${Math.random().toString(36).substring(2)},${Math.random().toString(36).substring(2)}`;
-      this.qrCodeString = initQr;
-      qrcode.toDataURL(initQr, { margin: 2, scale: 8 }).then((url) => {
-        if (!this.qrDataUrl || this.qrCodeString === initQr) {
-          this.qrDataUrl = url;
-          this.updateStatus('QR_READY', 'Scan QR Code with WhatsApp mobile app');
-          eventBus.emit('qr_generated', {
-            qr: initQr,
-            qrDataUrl: url,
-            timestamp: Date.now()
-          });
-        }
-      }).catch(() => {});
-    }
 
     // Clean up stale Chromium singleton locks from previous process terminations
     try {
@@ -165,11 +150,11 @@ export class WhatsAppEngine {
       this.client = new Client({
         authStrategy: new LocalAuth({ dataPath: '.wwebjs_auth' }),
         webVersionCache: {
-          type: 'remote',
-          remotePath: 'https://raw.githubusercontent.com/wppconnect-team/wa-js/main/dist/wppconnect-wa.js'
+          type: 'none'
         },
         puppeteer: {
-          headless: headless ? 'new' : false,
+          headless: true,
+          protocolTimeout: 120000,
           args: [
             '--no-sandbox',
             '--disable-setuid-sandbox',
@@ -177,7 +162,11 @@ export class WhatsAppEngine {
             '--disable-accelerated-2d-canvas',
             '--no-first-run',
             '--no-zygote',
-            '--disable-gpu'
+            '--disable-gpu',
+            '--disable-extensions',
+            '--disable-web-security',
+            '--dns-result-order=ipv4first',
+            '--user-agent=Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36'
           ]
         }
       });

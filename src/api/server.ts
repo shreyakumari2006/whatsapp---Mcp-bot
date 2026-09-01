@@ -112,14 +112,7 @@ export function createApiServer(): express.Express {
       status = whatsappEngine.getStatus();
     }
 
-    let qrImage = status.qrDataUrl;
-    if (!qrImage && status.status !== 'CONNECTED' && status.status !== 'AUTHENTICATED') {
-      try {
-        const qrcode = (await import('qrcode')).default;
-        const seed = status.qrCode || `2@${Date.now()},${Math.random().toString(36).substring(2)},${Math.random().toString(36).substring(2)}`;
-        qrImage = await qrcode.toDataURL(seed, { margin: 2, scale: 8 });
-      } catch {}
-    }
+    const qrImage = status.qrDataUrl;
 
     res.setHeader('Content-Type', 'text/html');
     res.send(`<!DOCTYPE html>
@@ -170,10 +163,18 @@ export function createApiServer(): express.Express {
 </html>`);
   });
 
-  // Auth Reset / Force QR Generation endpoint
+  // Auth Reset / Force Fresh QR Generation endpoint
   app.post(['/api/auth/reset', '/api/auth/qr'], async (req: Request, res: Response) => {
+    try {
+      const fs = await import('node:fs');
+      const path = await import('node:path');
+      const authPath = path.join(process.cwd(), '.wwebjs_auth');
+      if (fs.existsSync(authPath)) {
+        fs.rmSync(authPath, { recursive: true, force: true });
+      }
+    } catch {}
     whatsappEngine.initializeClient(true, true).catch(() => {});
-    res.json({ success: true, message: 'WhatsApp Engine restarted. Generating QR code...' });
+    res.json({ success: true, message: 'WhatsApp session reset. Fresh QR Code generating...' });
   });
 
   // Messages / Chats
