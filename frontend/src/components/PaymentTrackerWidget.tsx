@@ -94,35 +94,35 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
     switch (stage) {
       case 'WARMUP_CHECKIN':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
             1. Warmup Check-in
           </span>
         );
       case 'CONTEXT_BRIDGE':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-50 text-sky-800 border border-sky-200 text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-sky-500" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-500/40 text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-sky-400" />
             2. Context Bridge
           </span>
         );
       case 'PAYMENT_LINK_SENT':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-800 border border-purple-200 text-[11px] font-bold">
-            <span className="w-1.5 h-1.5 rounded-full bg-purple-500" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 text-[11px] font-bold">
+            <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
             3. Link Dispatched
           </span>
         );
       case 'PAID':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200 text-[11px] font-bold">
-            <CheckCircle2 size={12} className="text-emerald-600" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#00a884]/20 text-[#00a884] border border-[#00a884]/40 text-[11px] font-bold">
+            <CheckCircle2 size={12} className="text-[#00a884]" />
             4. Settled &amp; Paid
           </span>
         );
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-slate-50 text-slate-700 border border-slate-200 text-[11px] font-bold">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-[#202c33] text-[#8696a0] border border-[#2a3942] text-[11px] font-bold">
             Pending
           </span>
         );
@@ -130,22 +130,22 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
   };
 
   return (
-    <div className="bg-white border border-slate-200 rounded-3xl shadow-xs p-6 space-y-5">
+    <div className="bg-[#111b21] border border-[#222d34] rounded-3xl shadow-2xl p-6 space-y-5 select-none">
       {/* Header Summary */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#222d34]">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg shadow-2xs">
+          <div className="w-10 h-10 rounded-2xl bg-[#00a884]/15 border border-[#00a884]/30 text-[#00a884] flex items-center justify-center font-bold text-lg">
             <CreditCard size={20} />
           </div>
           <div>
-            <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
+            <h3 className="text-base font-bold text-[#e9edef] flex items-center gap-2">
               Conversational Payment Agent
-              <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono font-bold">
+              <span className="text-[11px] px-2 py-0.5 rounded-full bg-[#00a884]/20 text-[#00a884] border border-[#00a884]/40 font-mono font-bold">
                 MCP Agent
               </span>
             </h3>
-            <p className="text-xs text-slate-500">
-              Direct target phone dispatch &amp; automated payment recovery workflows
+            <p className="text-xs text-[#8696a0]">
+              Direct phone dispatch &amp; automated conversational payment collection
             </p>
           </div>
         </div>
@@ -155,7 +155,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
             <button
               onClick={handleAutoMatch}
               disabled={isMatching}
-              className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-300 rounded-xl text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5"
+              className="px-3 py-1.5 bg-[#202c33] hover:bg-[#2a3942] text-[#00a884] border border-[#00a884]/40 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
               title="Automatically match contacts from your active WhatsApp address book"
             >
               {isMatching ? <RotateCcw size={13} className="animate-spin" /> : <Search size={13} />}
@@ -164,16 +164,16 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
           )}
 
           <div className="text-right">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-slate-400 block">
+            <span className="text-[10px] uppercase font-bold tracking-wider text-[#8696a0] block">
               Total Pending
             </span>
-            <span className="text-lg font-black text-slate-900 font-mono">
+            <span className="text-lg font-black text-[#e9edef] font-mono">
               ₹{totalOutstanding.toLocaleString('en-IN')}
             </span>
           </div>
-          <div className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-center">
-            <span className="text-[10px] text-slate-400 block font-semibold">Active Targets</span>
-            <span className="text-xs font-bold text-slate-800 font-mono">
+          <div className="px-3 py-1.5 bg-[#202c33] border border-[#2a3942] rounded-xl text-center">
+            <span className="text-[10px] text-[#8696a0] block font-semibold">Active Targets</span>
+            <span className="text-xs font-bold text-[#e9edef] font-mono">
               {pendingTargets.length} / {safeTargets.length}
             </span>
           </div>
@@ -182,7 +182,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
 
       {/* Auto match feedback alert */}
       {matchResult && (
-        <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-800 font-medium animate-in fade-in">
+        <div className="p-3 rounded-xl bg-[#202c33] border border-[#00a884]/40 text-xs text-[#00a884] font-medium animate-in fade-in">
           {matchResult}
         </div>
       )}
@@ -211,21 +211,21 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
               key={target.id}
               className={`p-5 rounded-2xl border transition-all flex flex-col justify-between space-y-4 ${
                 isPaid
-                  ? 'bg-slate-50/70 border-slate-200 opacity-80'
+                  ? 'bg-[#202c33]/50 border-[#2a3942] opacity-70'
                   : target.stage === 'PAYMENT_LINK_SENT'
-                  ? 'bg-purple-50/30 border-purple-200 shadow-2xs'
-                  : 'bg-white border-slate-200 shadow-2xs hover:shadow-md'
+                  ? 'bg-[#202c33] border-purple-500/40 shadow-sm'
+                  : 'bg-[#202c33] border-[#2a3942] shadow-sm hover:border-[#00a884]/50'
               }`}
             >
               {/* Card Top */}
               <div>
                 <div className="flex items-start justify-between gap-2 mb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-700 font-bold text-xs">
+                    <div className="w-9 h-9 rounded-xl bg-[#111b21] border border-[#2a3942] flex items-center justify-center text-[#e9edef] font-bold text-xs">
                       {initials}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold text-slate-900">{targetName}</h4>
+                      <h4 className="text-sm font-bold text-[#e9edef]">{targetName}</h4>
                       
                       {/* Phone Number / Direct JID Display & Editor */}
                       {isEditing ? (
@@ -235,7 +235,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                             value={editPhone}
                             onChange={(e) => setEditPhone(e.target.value)}
                             placeholder="+91 98765 43210"
-                            className="text-xs px-2 py-0.5 border border-emerald-400 rounded-md w-32 font-mono focus:outline-none focus:ring-1 focus:ring-emerald-500 bg-white"
+                            className="text-xs px-2 py-0.5 border border-[#00a884] rounded-md w-32 font-mono focus:outline-none focus:ring-1 focus:ring-[#00a884] bg-[#111b21] text-[#e9edef]"
                             autoFocus
                             onKeyDown={(e) => {
                               if (e.key === 'Enter') handleSaveEdit(target.id);
@@ -244,14 +244,14 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                           />
                           <button
                             onClick={() => handleSaveEdit(target.id)}
-                            className="p-1 rounded bg-emerald-600 text-white hover:bg-emerald-700"
+                            className="p-1 rounded bg-[#00a884] text-[#111b21] hover:bg-[#00a884]/90 font-bold"
                             title="Save Phone Number"
                           >
                             <Check size={12} />
                           </button>
                           <button
                             onClick={() => setEditingId(null)}
-                            className="p-1 rounded bg-slate-200 text-slate-600 hover:bg-slate-300"
+                            className="p-1 rounded bg-[#111b21] text-[#8696a0] hover:text-[#e9edef]"
                             title="Cancel"
                           >
                             <X size={12} />
@@ -259,13 +259,13 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className="text-[11px] text-slate-600 font-mono font-semibold flex items-center gap-1">
-                            <Phone size={10} className="text-slate-400" />
+                          <span className="text-[11px] text-[#8696a0] font-mono font-semibold flex items-center gap-1">
+                            <Phone size={10} className="text-[#8696a0]" />
                             {displayPhone}
                           </span>
                           <button
                             onClick={() => handleStartEdit(target)}
-                            className="text-[10px] text-slate-400 hover:text-emerald-700 p-0.5 rounded transition-colors"
+                            className="text-[10px] text-[#8696a0] hover:text-[#00a884] p-0.5 rounded transition-colors"
                             title="Change or enter exact recipient phone number"
                           >
                             <Edit2 size={11} />
@@ -278,26 +278,26 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                 </div>
 
                 {/* Recipient Destination Preview */}
-                <div className="mb-2 px-2.5 py-1 bg-slate-50/80 rounded-lg border border-slate-100 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+                <div className="mb-2 px-2.5 py-1 bg-[#111b21] rounded-lg border border-[#2a3942] flex items-center justify-between text-[10px] text-[#8696a0] font-mono">
                   <span>Destination:</span>
-                  <span className="font-bold text-slate-700 truncate max-w-[140px]" title={destinationJid}>
+                  <span className="font-bold text-[#00a884] truncate max-w-[140px]" title={destinationJid}>
                     {destinationJid}
                   </span>
                 </div>
 
                 {/* Amount & Reason */}
-                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl mb-3 flex items-center justify-between">
+                <div className="p-3 bg-[#111b21] border border-[#2a3942] rounded-xl mb-3 flex items-center justify-between">
                   <div>
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase block">
+                    <span className="text-[10px] font-semibold text-[#8696a0] uppercase block">
                       Settlement Item
                     </span>
-                    <span className="text-xs font-bold text-slate-800">{target.reason || 'Settlement'}</span>
+                    <span className="text-xs font-bold text-[#e9edef]">{target.reason || 'Settlement'}</span>
                   </div>
                   <div className="text-right">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase block">
+                    <span className="text-[10px] font-semibold text-[#8696a0] uppercase block">
                       Amount Due
                     </span>
-                    <span className="text-sm font-black text-slate-900 font-mono">
+                    <span className="text-sm font-black text-[#e9edef] font-mono">
                       ₹{displayAmount}
                     </span>
                   </div>
@@ -305,17 +305,17 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
 
                 {/* Last Message Preview */}
                 {target.lastMessageSent ? (
-                  <div className="p-2.5 bg-white border border-slate-200 rounded-lg text-[11px] text-slate-600 space-y-1">
-                    <div className="flex items-center gap-1 text-[10px] font-bold text-slate-400 uppercase">
-                      <MessageSquareQuote size={11} className="text-slate-400" />
+                  <div className="p-2.5 bg-[#111b21] border border-[#2a3942] rounded-lg text-[11px] text-[#8696a0] space-y-1">
+                    <div className="flex items-center gap-1 text-[10px] font-bold text-[#8696a0] uppercase">
+                      <MessageSquareQuote size={11} className="text-[#8696a0]" />
                       <span>Last Sent Context:</span>
                     </div>
-                    <p className="line-clamp-2 italic text-slate-700 leading-snug">
+                    <p className="line-clamp-2 italic text-[#e9edef] leading-snug">
                       "{target.lastMessageSent}"
                     </p>
                   </div>
                 ) : (
-                  <div className="text-[11px] text-slate-400 italic py-1 flex items-center gap-1">
+                  <div className="text-[11px] text-[#8696a0] italic py-1 flex items-center gap-1">
                     <Clock size={11} />
                     <span>Awaiting casual check-in initiation</span>
                   </div>
@@ -323,11 +323,11 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-2 border-t border-slate-100">
+              <div className="pt-2 border-t border-[#2a3942]">
                 {target.stage === 'WARMUP_CHECKIN' && (
                   <button
                     onClick={() => onInitiateCheckin(target.id)}
-                    className="w-full py-2 px-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                    className="w-full py-2 px-3 bg-[#00a884] hover:bg-[#00a884]/90 text-[#111b21] rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
                   >
                     <Sparkles size={13} />
                     <span>1. Send Friendly Check-in</span>
@@ -337,7 +337,7 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                 {target.stage === 'CONTEXT_BRIDGE' && (
                   <button
                     onClick={() => onDispatchPaymentLink(target.id)}
-                    className="w-full py-2 px-3 bg-sky-600 hover:bg-sky-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                    className="w-full py-2 px-3 bg-[#3b82f6] hover:bg-[#3b82f6]/90 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors"
                   >
                     <Send size={13} />
                     <span>2. Send Payment Link</span>
@@ -347,16 +347,16 @@ export const PaymentTrackerWidget: React.FC<PaymentTrackerWidgetProps> = ({
                 {target.stage === 'PAYMENT_LINK_SENT' && (
                   <button
                     onClick={() => onSettlePayment(target.id)}
-                    className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-xs transition-colors"
+                    className="w-full py-2 px-3 bg-[#2a3942] hover:bg-[#374248] text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition-colors border border-[#374248]"
                   >
-                    <CheckCircle2 size={13} className="text-emerald-400" />
+                    <CheckCircle2 size={13} className="text-[#00a884]" />
                     <span>3. Mark Settled &amp; Paid</span>
                   </button>
                 )}
 
                 {target.stage === 'PAID' && (
-                  <div className="py-1.5 text-center text-xs font-bold text-emerald-700 flex items-center justify-center gap-1 bg-emerald-50 rounded-xl border border-emerald-200">
-                    <ShieldCheck size={14} className="text-emerald-600" />
+                  <div className="py-1.5 text-center text-xs font-bold text-[#00a884] flex items-center justify-center gap-1 bg-[#00a884]/15 rounded-xl border border-[#00a884]/30">
+                    <ShieldCheck size={14} className="text-[#00a884]" />
                     <span>Payment Completed</span>
                   </div>
                 )}

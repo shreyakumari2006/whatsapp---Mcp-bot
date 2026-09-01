@@ -1,16 +1,16 @@
 import { useState, useMemo } from 'react';
 import { useWhatsAppSSE } from './hooks/useWhatsAppSSE';
-import { Navbar } from './components/Navbar';
-import { AnalyticsRadar } from './components/AnalyticsRadar';
-import { ChatFeed, type ChatThreadItem } from './components/ChatFeed';
-import { ConversationThread } from './components/ConversationThread';
-import { ContactInspector } from './components/ContactInspector';
+import { WhatsAppSidebar } from './components/WhatsAppSidebar';
+import { WhatsAppChatArea } from './components/WhatsAppChatArea';
+import { WhatsAppWelcomeScreen } from './components/WhatsAppWelcomeScreen';
+import { WhatsAppMcpDrawer } from './components/WhatsAppMcpDrawer';
+import { WhatsAppQRModal } from './components/WhatsAppQRModal';
+import { WhatsAppSimulateModal } from './components/WhatsAppSimulateModal';
 import { HITLApprovalModal } from './components/HITLApprovalModal';
 import { RuleStudio } from './components/RuleStudio';
-import { TerminalLogDrawer } from './components/TerminalLogDrawer';
-import { QROverlay } from './components/QROverlay';
 import { PaymentTrackerWidget } from './components/PaymentTrackerWidget';
 import { X } from 'lucide-react';
+import type { ChatThreadItem } from './components/ChatFeed';
 
 export default function App() {
   const {
@@ -23,7 +23,6 @@ export default function App() {
     auditLogs,
     activeFlows,
     paymentTargets,
-    analytics,
     selectedChatId,
     setSelectedChatId,
     approveMessage,
@@ -41,15 +40,16 @@ export default function App() {
   } = useWhatsAppSSE();
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState<'ALL' | 'URGENT' | 'VIP' | 'APPROVALS'>('ALL');
+  const [activeTab, setActiveTab] = useState<'ALL' | 'URGENT' | 'VIP' | 'APPROVALS' | 'BOTS'>('ALL');
   const [showRuleStudio, setShowRuleStudio] = useState(false);
   const [showAuditDrawer, setShowAuditDrawer] = useState(false);
   const [showQRModal, setShowQRModal] = useState(false);
   const [showApprovalsModal, setShowApprovalsModal] = useState(false);
   const [showPaymentsModal, setShowPaymentsModal] = useState(false);
+  const [showSimulateModal, setShowSimulateModal] = useState(false);
   const [isSending, setIsSending] = useState(false);
 
-  // Group messages by chat ID
+  // Group messages into distinct WhatsApp conversation threads
   const chatThreads = useMemo(() => {
     const map = new Map<string, ChatThreadItem>();
 
@@ -74,13 +74,13 @@ export default function App() {
     return Array.from(map.values());
   }, [messages]);
 
-  // Filter messages based on active tab and search
+  // Filter conversations by search and selected view tab
   const filteredChats = useMemo(() => {
     return chatThreads.filter((chat) => {
       if (searchQuery) {
         const q = searchQuery.toLowerCase();
         const matchesName = chat.senderName.toLowerCase().includes(q);
-        const matchesBody = chat.messages.some((m) => m.body.toLowerCase().includes(q));
+        const matchesBody = chat.messages.some((m) => m.body?.toLowerCase().includes(q));
         if (!matchesName && !matchesBody) return false;
       }
 
@@ -93,12 +93,15 @@ export default function App() {
       if (activeTab === 'APPROVALS') {
         return pendingApprovals.some((p) => p.to === chat.chatId && p.status === 'pending');
       }
+      if (activeTab === 'BOTS') {
+        return chat.messages.some((m) => m.autoReplied);
+      }
 
       return true;
     });
   }, [chatThreads, searchQuery, activeTab, pendingApprovals]);
 
-  const activeChat = chatThreads.find((c) => c.chatId === selectedChatId) || chatThreads[0];
+  const activeChat = chatThreads.find((c) => c.chatId === selectedChatId) || (chatThreads.length > 0 ? chatThreads[0] : null);
   const activeChatFlow = activeChat ? activeFlows.find((f) => f.contactJid === activeChat.chatId) : null;
 
   const handleSendMessage = async (text: string, requireApproval: boolean) => {
@@ -114,62 +117,101 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 text-slate-900 font-sans antialiased overflow-hidden">
+    <div className="flex h-screen w-screen bg-[#111b21] text-[#e9edef] font-sans antialiased overflow-hidden select-none">
 
-      {/* 1. TOP NAVIGATION & SYSTEM HEALTH BAR */}
-      <Navbar
+      {/* LEFT SIDEBAR: 30% width, min 340px, max 450px */}
+      <WhatsAppSidebar
         status={status}
         user={user}
         pendingApprovals={pendingApprovals}
         rules={rules}
-        pendingPaymentsCount={(paymentTargets || []).filter((t) => t && t.stage !== 'PAID').length}
+        paymentTargets={paymentTargets}
+        activeFlows={activeFlows}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        filteredChats={filteredChats}
+        selectedChatId={activeChat?.chatId || null}
+        onSelectChat={(id) => setSelectedChatId(id)}
         onOpenQR={() => setShowQRModal(true)}
         onOpenApprovals={() => setShowApprovalsModal(true)}
         onOpenRuleStudio={() => setShowRuleStudio(true)}
         onOpenAudit={() => setShowAuditDrawer(true)}
         onOpenPayments={() => setShowPaymentsModal(true)}
+        onSimulateNewChat={() => setShowSimulateModal(true)}
       />
 
-      {/* 2. LIVE TRIAGE RADAR & TELEMETRY BANNER */}
-      <AnalyticsRadar analytics={analytics} />
-
-      {/* 3. MAIN 3-PANE VIEWPORT */}
-      <div className="flex flex-1 overflow-hidden">
-        <ChatFeed
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          filteredChats={filteredChats}
-          selectedChatId={activeChat?.chatId || null}
-          onSelectChat={(id) => setSelectedChatId(id)}
-          activeFlows={activeFlows}
-        />
-
-        <ConversationThread
-          activeChat={activeChat}
-          onSendMessage={handleSendMessage}
-          isSending={isSending}
-          activeFlow={activeChatFlow}
-          onCancelFlow={cancelFlowSession}
-        />
-
-        <ContactInspector
+      {/* RIGHT MAIN PANE: 70% width */}
+      {activeChat ? (
+        <WhatsAppChatArea
           activeChat={activeChat}
           pendingApprovals={pendingApprovals}
+          activeFlow={activeChatFlow}
+          onSendMessage={handleSendMessage}
           onApprove={approveMessage}
           onReject={rejectMessage}
+          onGenerateDraft={generateAIDraft}
+          onCancelFlow={cancelFlowSession}
+          isSending={isSending}
         />
-      </div>
+      ) : (
+        <WhatsAppWelcomeScreen
+          onSimulateChat={() => setShowSimulateModal(true)}
+          onOpenAudit={() => setShowAuditDrawer(true)}
+          onOpenPayments={() => setShowPaymentsModal(true)}
+        />
+      )}
 
-      {/* 4. MODALS & DRAWERS */}
+      {/* SLIDE-OVER MCP TELEMETRY DRAWER */}
+      <WhatsAppMcpDrawer
+        isOpen={showAuditDrawer}
+        onClose={() => setShowAuditDrawer(false)}
+        auditLogs={auditLogs}
+      />
+
+      {/* WHATSAPP DEVICE PAIRING QR MODAL */}
+      <WhatsAppQRModal
+        isOpen={showQRModal}
+        onClose={() => setShowQRModal(false)}
+        qrDataUrl={qrDataUrl}
+        status={status}
+        user={user}
+      />
+
+      {/* INBOUND SIMULATION MODAL */}
+      <WhatsAppSimulateModal
+        isOpen={showSimulateModal}
+        onClose={() => setShowSimulateModal(false)}
+      />
+
+      {/* HUMAN-IN-THE-LOOP APPROVAL QUEUE MODAL */}
+      <HITLApprovalModal
+        isOpen={showApprovalsModal}
+        onClose={() => setShowApprovalsModal(false)}
+        pendingApprovals={pendingApprovals}
+        onApprove={approveMessage}
+        onReject={rejectMessage}
+        onGenerateDraft={generateAIDraft}
+      />
+
+      {/* AUTO-REPLY RULE STUDIO MODAL */}
+      <RuleStudio
+        isOpen={showRuleStudio}
+        onClose={() => setShowRuleStudio(false)}
+        rules={rules}
+        onCreateRule={configureRule}
+        onToggleRule={toggleRule}
+      />
+
+      {/* CONVERSATIONAL PAYMENT AGENT MODAL */}
       {showPaymentsModal && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 p-1">
+        <div className="fixed inset-0 bg-black/75 backdrop-blur-xs flex items-center justify-center z-50 p-4 select-none">
+          <div className="bg-[#111b21] rounded-3xl border border-[#222d34] shadow-2xl w-full max-w-4xl max-h-[85vh] overflow-y-auto animate-in fade-in zoom-in-95 duration-150 p-1">
             <div className="flex justify-end p-3 pb-0">
               <button
                 onClick={() => setShowPaymentsModal(false)}
-                className="w-8 h-8 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 flex items-center justify-center transition-colors"
+                className="w-8 h-8 rounded-xl text-[#8696a0] hover:text-[#e9edef] hover:bg-[#202c33] flex items-center justify-center transition-colors"
               >
                 <X size={18} />
               </button>
@@ -185,35 +227,6 @@ export default function App() {
           </div>
         </div>
       )}
-
-      <HITLApprovalModal
-        isOpen={showApprovalsModal}
-        onClose={() => setShowApprovalsModal(false)}
-        pendingApprovals={pendingApprovals}
-        onApprove={approveMessage}
-        onReject={rejectMessage}
-        onGenerateDraft={generateAIDraft}
-      />
-
-      <RuleStudio
-        isOpen={showRuleStudio}
-        onClose={() => setShowRuleStudio(false)}
-        rules={rules}
-        onCreateRule={configureRule}
-        onToggleRule={toggleRule}
-      />
-
-      <TerminalLogDrawer
-        isOpen={showAuditDrawer}
-        onClose={() => setShowAuditDrawer(false)}
-        auditLogs={auditLogs}
-      />
-
-      <QROverlay
-        isOpen={showQRModal}
-        qrDataUrl={qrDataUrl}
-        onClose={() => setShowQRModal(false)}
-      />
 
     </div>
   );
