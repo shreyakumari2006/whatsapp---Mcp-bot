@@ -14,6 +14,35 @@ if (process.env.RAILWAY_ENVIRONMENT || process.env.RENDER) {
   }
 }
 
+// Process Resilience: Catch transient Puppeteer/Chromium navigation resets
+process.on('uncaughtException', (err: any) => {
+  const msg = err?.message || String(err);
+  if (
+    msg.includes('Execution context was destroyed') ||
+    msg.includes('Protocol error') ||
+    msg.includes('Target closed') ||
+    msg.includes('Session closed')
+  ) {
+    console.error('⚠️ Transient Puppeteer/Chromium warning (recovered):', msg);
+    return;
+  }
+  console.error('❌ Uncaught Exception:', err);
+});
+
+process.on('unhandledRejection', (reason: any) => {
+  const msg = reason?.message || String(reason);
+  if (
+    msg.includes('Execution context was destroyed') ||
+    msg.includes('Protocol error') ||
+    msg.includes('Target closed') ||
+    msg.includes('Session closed')
+  ) {
+    console.error('⚠️ Transient Puppeteer/Chromium rejection (recovered):', msg);
+    return;
+  }
+  console.error('❌ Unhandled Rejection:', reason);
+});
+
 import { McpApplicationFactory } from '@nitrostack/core';
 import { AppModule } from './app.module.js';
 
