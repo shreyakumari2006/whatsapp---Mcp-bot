@@ -148,6 +148,72 @@ export const SEED_MESSAGES: ChatMessage[] = [
     isGroup: false,
     matchedKeywords: ['design assets'],
     urgencyScore: 4
+  },
+  {
+    id: 'msg_011',
+    from: '919876543220@c.us',
+    senderName: 'Vikram Mehta (VP Engineering)',
+    body: 'URGENT: Production payment gateway latency spiked above 4500ms. Need you on the war room bridge immediately!',
+    timestamp: Date.now() - 1000 * 60 * 2,
+    priority: 'URGENT',
+    isGroup: false,
+    matchedKeywords: ['urgent', 'immediately', 'war room', 'latency'],
+    urgencyScore: 9
+  },
+  {
+    id: 'msg_012',
+    from: '919876543221@c.us',
+    senderName: 'Priya Sharma (Product Lead)',
+    body: 'Shreya, the mobile app build failed in CI/CD pipeline before tonight\'s release deadline. Please check the logs ASAP!',
+    timestamp: Date.now() - 1000 * 60 * 6,
+    priority: 'URGENT',
+    isGroup: false,
+    matchedKeywords: ['failed', 'deadline', 'asap'],
+    urgencyScore: 8
+  },
+  {
+    id: 'msg_013',
+    from: '1555019011@c.us',
+    senderName: 'Cloud Infrastructure Sentinel',
+    body: 'EMERGENCY: AWS US-East-1 primary database replication lag exceeding 120s! Webhook consumer failed. Failover action required right now.',
+    timestamp: Date.now() - 1000 * 60 * 1,
+    priority: 'CRITICAL',
+    isGroup: false,
+    matchedKeywords: ['emergency', 'failed', 'right now'],
+    urgencyScore: 10
+  },
+  {
+    id: 'msg_014',
+    from: '919876543222@c.us',
+    senderName: 'Rajesh Gupta (Managing Director)',
+    body: 'Hi Shreya, excellent progress on the WhatsApp MCP architecture. Let\'s schedule a 15-min sync with the board on Thursday.',
+    timestamp: Date.now() - 1000 * 60 * 30,
+    priority: 'VIP',
+    isGroup: false,
+    matchedKeywords: ['board', 'sync'],
+    urgencyScore: 6
+  },
+  {
+    id: 'msg_015',
+    from: '1555019013@c.us',
+    senderName: 'Avery Vance (Strategic Partner)',
+    body: 'Hey Shreya, our partnership agreement draft is ready for review. Take your time looking it over this week.',
+    timestamp: Date.now() - 1000 * 60 * 50,
+    priority: 'VIP',
+    isGroup: false,
+    matchedKeywords: ['partnership'],
+    urgencyScore: 5
+  },
+  {
+    id: 'msg_016',
+    from: '919876543223@c.us',
+    senderName: 'Kunal Kapoor (Enterprise Client - Apex)',
+    body: 'Hi Shreya, our security team loved the WhatsApp MCP demo. Can we fast-track the enterprise security audit paperwork?',
+    timestamp: Date.now() - 1000 * 60 * 70,
+    priority: 'VIP',
+    isGroup: false,
+    matchedKeywords: ['enterprise', 'demo'],
+    urgencyScore: 6
   }
 ];
 
@@ -224,20 +290,46 @@ export const SEED_PENDING_APPROVALS: PendingApproval[] = [
     priority: 'VIP',
     createdAt: Date.now() - 1000 * 60 * 15,
     status: 'pending'
+  },
+  {
+    id: 'appr_seed_002',
+    to: '919876543220@c.us',
+    recipientName: 'Vikram Mehta (VP Engineering)',
+    message: 'Hi Vikram, I am joining the bridge now. Initiating payment webhook dead-letter queue inspection and DB replica health check.',
+    priority: 'URGENT',
+    createdAt: Date.now() - 1000 * 60 * 2,
+    status: 'pending'
+  },
+  {
+    id: 'appr_seed_003',
+    to: '919876543222@c.us',
+    recipientName: 'Rajesh Gupta (Managing Director)',
+    message: 'Good morning Mr. Gupta, Thursday 2:30 PM works perfectly for the board sync. I will prepare the 1-pager summary.',
+    priority: 'VIP',
+    createdAt: Date.now() - 1000 * 60 * 20,
+    status: 'pending'
   }
 ];
 
 export const SEED_AUDIT_LOGS: AuditLogEntry[] = [
   {
     id: 'audit_01',
-    timestamp: Date.now() - 1000 * 60 * 3,
+    timestamp: Date.now() - 1000 * 60 * 1,
     type: 'TRIAGE',
-    action: '[FAST-PATH] Classified [CRITICAL] from DevOps Alert Bot',
-    details: { from: '1555019003@c.us', keywords: ['down', 'failed', 'emergency', 'asap'] },
+    action: '[FAST-PATH] Classified [CRITICAL] from Cloud Infrastructure Sentinel',
+    details: { from: '1555019011@c.us', keywords: ['emergency', 'failed', 'right now'] },
     level: 'error'
   },
   {
     id: 'audit_02',
+    timestamp: Date.now() - 1000 * 60 * 2,
+    type: 'APPROVAL',
+    action: 'Staged AI response for Vikram Mehta (VP Engineering) [URGENT]',
+    details: { to: '919876543220@c.us', tone: 'brief' },
+    level: 'warn'
+  },
+  {
+    id: 'audit_03',
     timestamp: Date.now() - 1000 * 60 * 25,
     type: 'TRIAGE',
     action: '[FAST-PATH] Classified [VIP] from Sarah Chen (CEO)',
@@ -245,7 +337,7 @@ export const SEED_AUDIT_LOGS: AuditLogEntry[] = [
     level: 'info'
   },
   {
-    id: 'audit_03',
+    id: 'audit_04',
     timestamp: Date.now() - 1000 * 60 * 65,
     type: 'AUTO_REPLY',
     action: 'Dispatched Auto-Reply "Pricing & Service Inquiries" to Random Inquirer',

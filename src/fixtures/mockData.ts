@@ -145,6 +145,63 @@ export const MOCK_CONTACTS: ContactItem[] = [
     isGroup: false,
     unreadCount: 0,
     lastActive: Date.now() - 1000 * 60 * 5
+  },
+  {
+    id: '919876543220@c.us',
+    name: 'Vikram Mehta (VP Engineering)',
+    phone: '+91 98765 43220',
+    isVIP: false,
+    isGroup: false,
+    unreadCount: 1,
+    lastActive: Date.now() - 1000 * 60 * 2
+  },
+  {
+    id: '919876543221@c.us',
+    name: 'Priya Sharma (Product Lead)',
+    phone: '+91 98765 43221',
+    isVIP: false,
+    isGroup: false,
+    unreadCount: 1,
+    lastActive: Date.now() - 1000 * 60 * 6
+  },
+  {
+    id: '1555019011@c.us',
+    name: 'Cloud Infrastructure Sentinel',
+    phone: '+1 (555) 019-011',
+    isVIP: false,
+    isGroup: false,
+    unreadCount: 2,
+    lastActive: Date.now() - 1000 * 60 * 1
+  },
+  {
+    id: '919876543222@c.us',
+    name: 'Rajesh Gupta (Managing Director)',
+    phone: '+91 98765 43222',
+    isVIP: true,
+    vipTier: 'TIER_1_EXECUTIVE',
+    isGroup: false,
+    unreadCount: 1,
+    lastActive: Date.now() - 1000 * 60 * 30
+  },
+  {
+    id: '1555019013@c.us',
+    name: 'Avery Vance (Strategic Partner)',
+    phone: '+1 (555) 019-013',
+    isVIP: true,
+    vipTier: 'TIER_3_PARTNER',
+    isGroup: false,
+    unreadCount: 0,
+    lastActive: Date.now() - 1000 * 60 * 50
+  },
+  {
+    id: '919876543223@c.us',
+    name: 'Kunal Kapoor (Enterprise Client - Apex)',
+    phone: '+91 98765 43223',
+    isVIP: true,
+    vipTier: 'TIER_2_CLIENT',
+    isGroup: false,
+    unreadCount: 1,
+    lastActive: Date.now() - 1000 * 60 * 70
   }
 ];
 
