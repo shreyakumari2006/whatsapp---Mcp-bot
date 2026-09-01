@@ -80,4 +80,4 @@ EXPOSE 3000 3001
 
 # Use dumb-init to handle PID 1 zombie processes spawned by headless Chromium
 ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["node", "dist/main.js"]
+CMD ["node", "dist/index.js"]
