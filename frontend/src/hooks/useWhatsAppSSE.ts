@@ -9,15 +9,24 @@ import type {
   AIDraftTone,
   AIDraftResponse
 } from '../types/whatsapp';
+import { 
+  SEED_MESSAGES, 
+  SEED_RULES, 
+  SEED_PENDING_APPROVALS, 
+  SEED_AUDIT_LOGS 
+} from '../data/seedData';
 
 export function useWhatsAppSSE(baseUrl = '') {
-  const [status, setStatus] = useState<WhatsAppConnectionStatus>('INITIALIZING');
-  const [user, setUser] = useState<{ id: string; pushname: string } | null>(null);
+  const [status, setStatus] = useState<WhatsAppConnectionStatus>('AUTHENTICATED');
+  const [user, setUser] = useState<{ id: string; pushname: string } | null>({
+    id: 'shreya@c.us',
+    pushname: 'Shreya'
+  });
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [rules, setRules] = useState<AutoReplyRule[]>([]);
-  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
-  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
+  const [messages, setMessages] = useState<ChatMessage[]>(SEED_MESSAGES);
+  const [rules, setRules] = useState<AutoReplyRule[]>(SEED_RULES);
+  const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>(SEED_PENDING_APPROVALS);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(SEED_AUDIT_LOGS);
   const [analytics, setAnalytics] = useState<TelemetryMetrics>({
     triageDistribution: { CRITICAL: 1, URGENT: 1, VIP: 2, NORMAL: 3, NOISE: 1 },
     avgTriageLatencyMs: 38,
@@ -25,12 +34,12 @@ export function useWhatsAppSSE(baseUrl = '') {
     humanApprovalsPending: 1,
     humanApprovalsResolved: 6,
     totalMessagesProcessed: 8,
-    automatedRepliesSent: 1,
+    automatedRepliesSent: 4,
     suppressedCount: 3
   });
   const [isConnectedSSE, setIsConnectedSSE] = useState(false);
   const [lastHeartbeat, setLastHeartbeat] = useState<number>(Date.now());
-  const [selectedChatId, setSelectedChatId] = useState<string | null>(null);
+  const [selectedChatId, setSelectedChatId] = useState<string | null>('1555019001@c.us');
 
   const eventSourceRef = useRef<EventSource | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);

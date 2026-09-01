@@ -48,33 +48,29 @@ export const ChatFeed: React.FC<ChatFeedProps> = ({
       <div className="p-2 border-b border-slate-200 bg-slate-50/60 flex gap-1 text-[11px] font-semibold text-slate-600">
         <button
           onClick={() => setActiveTab('ALL')}
-          className={`flex-1 py-1.5 rounded-md text-center transition-all ${
-            activeTab === 'ALL' ? 'bg-white text-slate-900 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
-          }`}
+          className={`flex-1 py-1.5 rounded-md text-center transition-all ${activeTab === 'ALL' ? 'bg-white text-slate-900 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
+            }`}
         >
           All
         </button>
         <button
           onClick={() => setActiveTab('URGENT')}
-          className={`flex-1 py-1.5 rounded-md text-center flex items-center justify-center gap-1 transition-all ${
-            activeTab === 'URGENT' ? 'bg-white text-rose-700 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
-          }`}
+          className={`flex-1 py-1.5 rounded-md text-center flex items-center justify-center gap-1 transition-all ${activeTab === 'URGENT' ? 'bg-white text-rose-700 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
+            }`}
         >
           <Flame size={12} className="text-rose-600" /> Urgent
         </button>
         <button
           onClick={() => setActiveTab('VIP')}
-          className={`flex-1 py-1.5 rounded-md text-center flex items-center justify-center gap-1 transition-all ${
-            activeTab === 'VIP' ? 'bg-white text-purple-700 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
-          }`}
+          className={`flex-1 py-1.5 rounded-md text-center flex items-center justify-center gap-1 transition-all ${activeTab === 'VIP' ? 'bg-white text-purple-700 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
+            }`}
         >
           <Crown size={12} className="text-purple-600" /> VIPs
         </button>
         <button
           onClick={() => setActiveTab('APPROVALS')}
-          className={`flex-1 py-1.5 rounded-md text-center transition-all ${
-            activeTab === 'APPROVALS' ? 'bg-white text-amber-700 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
-          }`}
+          className={`flex-1 py-1.5 rounded-md text-center transition-all ${activeTab === 'APPROVALS' ? 'bg-white text-amber-700 shadow-xs border border-slate-200' : 'hover:bg-slate-200/60'
+            }`}
         >
           Staged
         </button>
@@ -96,17 +92,16 @@ export const ChatFeed: React.FC<ChatFeedProps> = ({
               <div
                 key={chat.chatId}
                 onClick={() => onSelectChat(chat.chatId)}
-                className={`p-3.5 cursor-pointer transition-all border-l-4 ${
-                  isSelected 
-                    ? 'bg-slate-50 border-emerald-600 shadow-xs' 
+                className={`p-3.5 cursor-pointer transition-all border-l-4 ${isSelected
+                    ? 'bg-slate-50 border-emerald-600 shadow-xs'
                     : isCrit
-                    ? 'border-rose-500 hover:bg-rose-50/40'
-                    : isUrg
-                    ? 'border-amber-500 hover:bg-amber-50/40'
-                    : isVip
-                    ? 'border-purple-500 hover:bg-purple-50/40'
-                    : 'border-transparent hover:bg-slate-50'
-                }`}
+                      ? 'border-rose-500 hover:bg-rose-50/40'
+                      : isUrg
+                        ? 'border-amber-500 hover:bg-amber-50/40'
+                        : isVip
+                          ? 'border-purple-500 hover:bg-purple-50/40'
+                          : 'border-transparent hover:bg-slate-50'
+                  }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <div className="flex items-center gap-1.5 truncate">
