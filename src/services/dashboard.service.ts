@@ -35,9 +35,18 @@ export class DashboardService implements OnApplicationBootstrap, OnApplicationSh
         this.server = srv;
         const addr = srv.address();
         const actualPort = typeof addr === 'object' && addr ? addr.port : port;
-        console.error(`🌐 Live Web Dashboard running at : http://localhost:${actualPort}`);
-        console.error(`📡 Live SSE Event Stream         : http://localhost:${actualPort}/api/stream`);
-        console.error(`📊 System & Health Telemetry     : http://localhost:${actualPort}/api/status\n`);
+        console.error('\n┌────────────────────────────────────────────────────────────┐');
+        console.error('│  🚀 WHATSAPP MCP SERVER IS RUNNING & ACTIVE                │');
+        console.error('├────────────────────────────────────────────────────────────┤');
+        console.error(`│  🌐 Command Center Dashboard : http://localhost:${actualPort.toString().padEnd(19)}│`);
+        console.error(`│  📲 Scan WhatsApp QR Code    : http://localhost:${actualPort}/qr${' '.repeat(Math.max(0, 16 - actualPort.toString().length))}│`);
+        console.error(`│  📡 Real-Time SSE Stream     : http://localhost:${actualPort}/api/stream${' '.repeat(Math.max(0, 8 - actualPort.toString().length))}│`);
+        console.error(`│  📊 Health Check Telemetry   : http://localhost:${actualPort}/healthz${' '.repeat(Math.max(0, 11 - actualPort.toString().length))}│`);
+        console.error('├────────────────────────────────────────────────────────────┤');
+        console.error('│  💡 Server is running actively in the background.          │');
+        console.error('│     Open the dashboard link in your browser to interact.   │');
+        console.error('│     Press (Ctrl + C) anytime to stop the server.           │');
+        console.error('└────────────────────────────────────────────────────────────┘\n');
       });
 
       srv.listen(port);
