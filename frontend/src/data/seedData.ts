@@ -115,6 +115,39 @@ export const SEED_MESSAGES: ChatMessage[] = [
     isGroup: false,
     matchedKeywords: [],
     urgencyScore: 1
+  },
+  {
+    id: 'msg_008',
+    from: '919876543210@c.us',
+    senderName: 'Abdhur Rahman',
+    body: 'Hey Shreya! Yes, checking the accounts today, will clear the ₹2,500 server hosting balance shortly.',
+    timestamp: Date.now() - 1000 * 60 * 15,
+    priority: 'NORMAL',
+    isGroup: false,
+    matchedKeywords: ['server hosting'],
+    urgencyScore: 4
+  },
+  {
+    id: 'msg_009',
+    from: '919876543211@c.us',
+    senderName: 'Ekansh Patil',
+    body: 'Thanks Shreya! Can you share the payment link or UPI ID for the ₹1,800 API credits?',
+    timestamp: Date.now() - 1000 * 60 * 10,
+    priority: 'URGENT',
+    isGroup: false,
+    matchedKeywords: ['api credits', 'payment'],
+    urgencyScore: 7
+  },
+  {
+    id: 'msg_010',
+    from: '919876543212@c.us',
+    senderName: 'Shreya Pandey',
+    body: 'Hey Shreya, yes reviewing the ₹3,200 design assets invoice now! Everything looks good.',
+    timestamp: Date.now() - 1000 * 60 * 5,
+    priority: 'NORMAL',
+    isGroup: false,
+    matchedKeywords: ['design assets'],
+    urgencyScore: 4
   }
 ];
 

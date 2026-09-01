@@ -118,6 +118,33 @@ export const MOCK_CONTACTS: ContactItem[] = [
     groupName: 'Core Engineering War Room',
     unreadCount: 5,
     lastActive: Date.now() - 1000 * 30
+  },
+  {
+    id: '919876543210@c.us',
+    name: 'Abdhur Rahman',
+    phone: '+91 98765 43210',
+    isVIP: false,
+    isGroup: false,
+    unreadCount: 1,
+    lastActive: Date.now() - 1000 * 60 * 15
+  },
+  {
+    id: '919876543211@c.us',
+    name: 'Ekansh Patil',
+    phone: '+91 98765 43211',
+    isVIP: false,
+    isGroup: false,
+    unreadCount: 1,
+    lastActive: Date.now() - 1000 * 60 * 10
+  },
+  {
+    id: '919876543212@c.us',
+    name: 'Shreya Pandey',
+    phone: '+91 98765 43212',
+    isVIP: false,
+    isGroup: false,
+    unreadCount: 0,
+    lastActive: Date.now() - 1000 * 60 * 5
   }
 ];
 
