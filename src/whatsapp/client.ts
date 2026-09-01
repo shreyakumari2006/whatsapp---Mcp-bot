@@ -20,7 +20,8 @@ import {
   URGENCY_KEYWORDS, 
   MOCK_CONTACTS, 
   MOCK_AUTO_REPLY_RULES, 
-  MOCK_TEST_MESSAGES 
+  MOCK_TEST_MESSAGES,
+  MOCK_PENDING_APPROVALS
 } from '../fixtures/mockData.js';
 import { triageLLMService, SemanticTriageResult } from '../services/triage-llm.service.js';
 
@@ -89,6 +90,10 @@ export class WhatsAppEngine {
     for (const r of MOCK_AUTO_REPLY_RULES) {
       this.rules.set(r.id, { ...r });
     }
+    // Seed pending approvals
+    for (const a of MOCK_PENDING_APPROVALS) {
+      this.pendingApprovals.set(a.id, { ...a });
+    }
     // Seed initial messages
     for (const m of MOCK_TEST_MESSAGES) {
       const classified = this.classifyMessage(m.body, m.from, m.isGroup);
@@ -109,7 +114,8 @@ export class WhatsAppEngine {
     this.logAudit('SYSTEM', 'WhatsApp Engine Initialized', {
       contactsLoaded: this.contacts.size,
       rulesLoaded: this.rules.size,
-      messagesLoaded: this.messages.length
+      messagesLoaded: this.messages.length,
+      pendingApprovalsLoaded: this.pendingApprovals.size
     }, 'info');
   }
 
