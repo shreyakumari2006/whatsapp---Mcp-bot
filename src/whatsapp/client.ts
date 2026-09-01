@@ -10,8 +10,10 @@ import {
   PendingApprovalEvent, 
   AuditLogItem,
   TelemetryMetrics,
-  AIDraftResponse 
+  AIDraftResponse,
+  ConversationSession
 } from '../bus.js';
+import { conversationStateManager } from './conversationState.js';
 import { 
   ContactItem, 
   AutoReplyRule, 
@@ -451,10 +453,121 @@ export class WhatsAppEngine {
     }
 
     const text = message.body.trim();
+    const textLower = text.toLowerCase();
     const now = Date.now();
+    const recipientName = contact?.name || message.senderName || message.from;
 
+    // =========================================================================
+    // 1. MULTI-TURN CONVERSATION FLOW PROCESSOR
+    // =========================================================================
+    const activeSession = conversationStateManager.getSession(message.from);
+    if (activeSession) {
+      if (activeSession.flowId === 'birthday_party_rsvp' && activeSession.currentStep === 'AWAITING_RSVP') {
+        const positiveWords = ['yes', 'yeah', 'sure', 'coming', 'definitely', 'yup', 'yep', 'absolutely', 'count me in', 'of course', 'i will', 'i am coming', 'see you'];
+        const negativeWords = ['no', 'cant', "can't", 'busy', 'miss', 'not coming', 'nope', 'nah', 'sorry', 'cannot', 'wont', "won't", 'unable'];
+
+        const isPositive = positiveWords.some(w => textLower.includes(w));
+        const isNegative = negativeWords.some(w => textLower.includes(w));
+
+        if (isPositive) {
+          const reply = "Awesome! 🎉 Can't wait to see you! Venue details: 7 PM at Sky Lounge.";
+          await this.sendDirectMessage(message.from, reply);
+          message.autoReplied = true;
+          conversationStateManager.completeFlow(message.from, { rsvp: 'CONFIRMED', responseText: text });
+
+          this.logAudit('AUTO_REPLY', `Multi-Turn Flow [Birthday RSVP] CONFIRMED for ${recipientName}`, {
+            contactJid: message.from,
+            flowId: activeSession.flowId,
+            rsvp: 'CONFIRMED',
+            reply
+          }, 'success');
+          return true;
+        } else if (isNegative) {
+          const reply = "No worries at all! Miss you, let's catch up soon! ❤️";
+          await this.sendDirectMessage(message.from, reply);
+          message.autoReplied = true;
+          conversationStateManager.completeFlow(message.from, { rsvp: 'DECLINED', responseText: text });
+
+          this.logAudit('AUTO_REPLY', `Multi-Turn Flow [Birthday RSVP] DECLINED for ${recipientName}`, {
+            contactJid: message.from,
+            flowId: activeSession.flowId,
+            rsvp: 'DECLINED',
+            reply
+          }, 'info');
+          return true;
+        } else {
+          // Follow-up clarification prompt
+          const reply = "Would love to know if you can make it to the birthday party tonight! 😊 Reply Yes or No.";
+          await this.sendDirectMessage(message.from, reply);
+          message.autoReplied = true;
+          conversationStateManager.transitionStep(message.from, 'AWAITING_RSVP', { lastInquiry: text });
+
+          this.logAudit('AUTO_REPLY', `Multi-Turn Flow [Birthday RSVP] Follow-up prompt sent to ${recipientName}`, {
+            contactJid: message.from,
+            flowId: activeSession.flowId,
+            step: 'AWAITING_RSVP'
+          }, 'info');
+          return true;
+        }
+      }
+    }
+
+    // =========================================================================
+    // 2. NEW FLOW INITIALIZER (e.g. Birthday Trigger -> Starts Multi-Turn Flow)
+    // =========================================================================
+    if (textLower.includes('birthday') || textLower.includes('bday') || textLower.includes('happy birthday')) {
+      const bdayRule = this.rules.get('rule_birthday_wishes');
+      if (bdayRule && bdayRule.enabled) {
+        const cooldownKey = `${message.from}:${bdayRule.id}`;
+        const cooldownExpiresAt = this.senderCooldowns.get(cooldownKey) || 0;
+
+        if (now >= cooldownExpiresAt) {
+          const initialFlowMsg = "Thank you so much for the birthday wishes! 🎉 Are you joining my birthday party tonight at 7 PM? (Reply Yes/No)";
+          await this.sendDirectMessage(message.from, initialFlowMsg);
+          message.autoReplied = true;
+          bdayRule.matchCount += 1;
+          bdayRule.lastTriggeredAt = now;
+          this.senderCooldowns.set(cooldownKey, now + (bdayRule.cooldownMinutes * 60 * 1000));
+
+          // Register active stateful session with 2 hours TTL
+          conversationStateManager.setSession(
+            message.from,
+            'birthday_party_rsvp',
+            'Birthday Thanks & Party RSVP Flow',
+            'AWAITING_RSVP',
+            { originalTrigger: text, initialReply: initialFlowMsg },
+            120,
+            recipientName
+          );
+
+          eventBus.emit('auto_reply_sent', {
+            to: message.from,
+            recipientName,
+            ruleId: bdayRule.id,
+            triggerPattern: bdayRule.triggerPattern,
+            replyMessage: initialFlowMsg,
+            timestamp: now,
+            cooldownUntil: now + (bdayRule.cooldownMinutes * 60 * 1000)
+          });
+
+          this.logAudit('AUTO_REPLY', `Started Multi-Turn Flow [Birthday RSVP] for ${recipientName}`, {
+            contactJid: message.from,
+            flowId: 'birthday_party_rsvp',
+            currentStep: 'AWAITING_RSVP',
+            ttlMinutes: 120
+          }, 'info');
+          return true;
+        }
+      }
+    }
+
+    // =========================================================================
+    // 3. STANDARD SINGLE-SHOT AUTO-REPLY RULES
+    // =========================================================================
     for (const rule of this.rules.values()) {
       if (!rule.enabled) continue;
+      // Skip flow rules handled by flow processor
+      if (rule.id === 'rule_birthday_wishes') continue;
 
       let isMatch = false;
 
@@ -472,7 +585,6 @@ export class WhatsAppEngine {
       }
 
       if (isMatch) {
-        const recipientName = contact?.name || message.senderName || message.from;
         const cooldownKey = `${message.from}:${rule.id}`;
         const cooldownExpiresAt = this.senderCooldowns.get(cooldownKey) || 0;
 
@@ -880,6 +992,21 @@ export class WhatsAppEngine {
       this.auditLogs.shift();
     }
     eventBus.emit('audit_log', item);
+  }
+
+  public getActiveFlowSessions(): ConversationSession[] {
+    return conversationStateManager.getAllActiveSessions();
+  }
+
+  public cancelFlowSession(contactJid: string): boolean {
+    const session = conversationStateManager.getSession(contactJid);
+    if (!session) return false;
+    conversationStateManager.deleteSession(contactJid, 'cancelled');
+    this.logAudit('AUTO_REPLY', `Cancelled Multi-Turn Flow [${session.flowName}] for ${session.senderName || contactJid}`, {
+      contactJid,
+      flowId: session.flowId
+    }, 'warn');
+    return true;
   }
 
   private updateStatus(status: ConnectionStatus, message?: string) {

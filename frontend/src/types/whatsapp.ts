@@ -52,6 +52,17 @@ export interface PendingApproval {
   status: 'pending' | 'approved' | 'rejected';
 }
 
+export interface ConversationSession {
+  contactJid: string;
+  senderName?: string;
+  flowId: string;
+  flowName: string;
+  currentStep: string;
+  contextData: Record<string, any>;
+  lastUpdated: number;
+  expiresAt: number;
+}
+
 export interface AutoReplyRule {
   id: string;
   name: string;
@@ -63,6 +74,8 @@ export interface AutoReplyRule {
   matchCount: number;
   lastTriggeredAt?: number;
   createdAt: number;
+  type?: 'single' | 'flow';
+  flowId?: string;
 }
 
 export interface AuditLogEntry {
@@ -121,4 +134,7 @@ export type SSEEvent =
   | { type: 'pending_approval'; data: PendingApproval }
   | { type: 'mcp_tool_called'; data: { tool: string; args: any; timestamp: number } }
   | { type: 'audit_log'; data: AuditLogEntry }
-  | { type: 'analytics_update'; data: TelemetryMetrics };
+  | { type: 'analytics_update'; data: TelemetryMetrics }
+  | { type: 'flow_state_change'; data: { session: ConversationSession; action: string; timestamp: number } }
+  | { type: 'flow_started'; data: ConversationSession }
+  | { type: 'flow_completed'; data: { contactJid: string; flowId: string; flowName: string; result: any } };

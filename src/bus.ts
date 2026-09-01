@@ -103,6 +103,31 @@ export interface AIDraftResponse {
   tone: 'professional' | 'empathetic' | 'brief' | 'technical';
 }
 
+export interface ConversationSession {
+  contactJid: string;
+  senderName?: string;
+  flowId: string;
+  flowName: string;
+  currentStep: string;
+  contextData: Record<string, any>;
+  lastUpdated: number;
+  expiresAt: number;
+}
+
+export interface FlowStateChangeEvent {
+  session: ConversationSession;
+  action: 'started' | 'step_transition' | 'completed' | 'cancelled';
+  timestamp: number;
+}
+
+export interface FlowCompletedEvent {
+  contactJid: string;
+  flowId: string;
+  flowName: string;
+  result: Record<string, any>;
+  timestamp: number;
+}
+
 export interface EventBusMap {
   qr_generated: QRGeneratedEvent;
   ready: ReadyEvent;
@@ -113,6 +138,9 @@ export interface EventBusMap {
   status_change: StatusChangeEvent;
   audit_log: AuditLogItem;
   analytics_update: TelemetryMetrics;
+  flow_state_change: FlowStateChangeEvent;
+  flow_started: ConversationSession;
+  flow_completed: FlowCompletedEvent;
 }
 
 class TypedEventEmitter extends EventEmitter {

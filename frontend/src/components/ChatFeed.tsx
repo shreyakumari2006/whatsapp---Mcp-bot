@@ -1,6 +1,6 @@
 import React from 'react';
-import { Flame, Crown, Users, User } from 'lucide-react';
-import type { PriorityTier, ChatMessage } from '../types/whatsapp';
+import { Flame, Crown, Users, User, Zap } from 'lucide-react';
+import type { PriorityTier, ChatMessage, ConversationSession } from '../types/whatsapp';
 
 export interface ChatThreadItem {
   chatId: string;
@@ -18,6 +18,7 @@ interface ChatFeedProps {
   filteredChats: ChatThreadItem[];
   selectedChatId: string | null;
   onSelectChat: (chatId: string) => void;
+  activeFlows?: ConversationSession[];
 }
 
 export const ChatFeed: React.FC<ChatFeedProps> = ({
@@ -25,7 +26,8 @@ export const ChatFeed: React.FC<ChatFeedProps> = ({
   setActiveTab,
   filteredChats,
   selectedChatId,
-  onSelectChat
+  onSelectChat,
+  activeFlows = []
 }) => {
   const renderPriorityPill = (tier: PriorityTier) => {
     const styles: Record<PriorityTier, string> = {
@@ -126,7 +128,14 @@ export const ChatFeed: React.FC<ChatFeedProps> = ({
                 </p>
 
                 <div className="flex items-center justify-between">
-                  {renderPriorityPill(chat.priority)}
+                  <div className="flex items-center gap-1.5">
+                    {renderPriorityPill(chat.priority)}
+                    {activeFlows.some((f) => f.contactJid === chat.chatId) && (
+                      <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 flex items-center gap-0.5 animate-pulse">
+                        <Zap size={10} className="fill-amber-500" /> Flow
+                      </span>
+                    )}
+                  </div>
                   {chat.lastMessage.matchedKeywords && chat.lastMessage.matchedKeywords.length > 0 && (
                     <span className="text-[10px] font-mono text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100">
                       #{chat.lastMessage.matchedKeywords[0]}

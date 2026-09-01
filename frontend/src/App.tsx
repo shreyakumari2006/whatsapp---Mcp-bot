@@ -19,6 +19,7 @@ export default function App() {
     rules,
     pendingApprovals,
     auditLogs,
+    activeFlows,
     analytics,
     selectedChatId,
     setSelectedChatId,
@@ -27,7 +28,8 @@ export default function App() {
     toggleRule,
     configureRule,
     sendMessage,
-    generateAIDraft
+    generateAIDraft,
+    cancelFlowSession
   } = useWhatsAppSSE();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -47,7 +49,7 @@ export default function App() {
       if (!map.has(threadId)) {
         map.set(threadId, {
           chatId: threadId,
-          senderName: msg.senderName || threadId,
+          senderName: msg.senderName || msg.groupName || threadId.replace(/@c\.us|@g\.us/, ''),
           isGroup: msg.isGroup,
           priority: msg.priority,
           isVIP: msg.priority === 'VIP',
@@ -63,24 +65,32 @@ export default function App() {
     return Array.from(map.values());
   }, [messages]);
 
-  // Filtered Chat List
+  // Filter messages based on active tab and search
   const filteredChats = useMemo(() => {
     return chatThreads.filter((chat) => {
-      const matchesSearch =
-        chat.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.chatId.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        chat.lastMessage.body.toLowerCase().includes(searchQuery.toLowerCase());
+      if (searchQuery) {
+        const q = searchQuery.toLowerCase();
+        const matchesName = chat.senderName.toLowerCase().includes(q);
+        const matchesBody = chat.messages.some((m) => m.body.toLowerCase().includes(q));
+        if (!matchesName && !matchesBody) return false;
+      }
 
-      if (!matchesSearch) return false;
+      if (activeTab === 'URGENT') {
+        return chat.priority === 'CRITICAL' || chat.priority === 'URGENT';
+      }
+      if (activeTab === 'VIP') {
+        return chat.isVIP;
+      }
+      if (activeTab === 'APPROVALS') {
+        return pendingApprovals.some((p) => p.to === chat.chatId && p.status === 'pending');
+      }
 
-      if (activeTab === 'URGENT') return chat.priority === 'CRITICAL' || chat.priority === 'URGENT';
-      if (activeTab === 'VIP') return chat.isVIP || chat.priority === 'VIP';
-      if (activeTab === 'APPROVALS') return pendingApprovals.some((p) => p.to === chat.chatId);
       return true;
     });
   }, [chatThreads, searchQuery, activeTab, pendingApprovals]);
 
   const activeChat = chatThreads.find((c) => c.chatId === selectedChatId) || chatThreads[0];
+  const activeChatFlow = activeChat ? activeFlows.find((f) => f.contactJid === activeChat.chatId) : null;
 
   const handleSendMessage = async (text: string, requireApproval: boolean) => {
     if (!activeChat) return;
@@ -122,12 +132,15 @@ export default function App() {
           filteredChats={filteredChats}
           selectedChatId={activeChat?.chatId || null}
           onSelectChat={(id) => setSelectedChatId(id)}
+          activeFlows={activeFlows}
         />
 
         <ConversationThread
           activeChat={activeChat}
           onSendMessage={handleSendMessage}
           isSending={isSending}
+          activeFlow={activeChatFlow}
+          onCancelFlow={cancelFlowSession}
         />
 
         <ContactInspector

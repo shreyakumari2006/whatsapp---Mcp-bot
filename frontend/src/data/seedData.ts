@@ -119,14 +119,29 @@ export const SEED_RULES: AutoReplyRule[] = [
   },
   {
     id: 'rule_birthday_wishes',
-    name: 'Birthday Wishes Responder',
+    name: 'Birthday Thanks & Party RSVP Flow',
     triggerPattern: 'birthday',
     triggerType: 'contains',
-    replyMessage: 'Thank you so much for the birthday wishes! 🎉 Really appreciate you reaching out! 😊',
+    replyMessage: 'Thank you so much for the birthday wishes! 🎉 Are you joining my birthday party tonight at 7 PM? (Reply Yes/No)',
     cooldownMinutes: 60,
     enabled: true,
-    matchCount: 2,
-    createdAt: Date.now() - 1000 * 60 * 60 * 2
+    matchCount: 3,
+    createdAt: Date.now() - 1000 * 60 * 60 * 2,
+    type: 'flow',
+    flowId: 'birthday_party_rsvp'
+  }
+];
+
+export const SEED_ACTIVE_FLOWS = [
+  {
+    contactJid: '1555019004@c.us',
+    senderName: 'Alex Johnson (Colleague)',
+    flowId: 'birthday_party_rsvp',
+    flowName: 'Birthday Thanks & Party RSVP Flow',
+    currentStep: 'AWAITING_RSVP',
+    contextData: { originalTrigger: 'Happy Birthday Shreya! Have a blast today! 🎂🎉' },
+    lastUpdated: Date.now() - 1000 * 60 * 5,
+    expiresAt: Date.now() + 1000 * 60 * 115
   }
 ];
 

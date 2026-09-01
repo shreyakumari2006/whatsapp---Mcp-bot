@@ -1,18 +1,22 @@
 import React, { useState } from 'react';
-import { Send, MessageSquare, Zap } from 'lucide-react';
-import type { PriorityTier, ChatMessage } from '../types/whatsapp';
+import { Send, MessageSquare, Zap, CheckCircle2, XCircle, RotateCcw } from 'lucide-react';
+import type { PriorityTier, ChatMessage, ConversationSession } from '../types/whatsapp';
 import type { ChatThreadItem } from './ChatFeed';
 
 interface ConversationThreadProps {
   activeChat?: ChatThreadItem;
   onSendMessage: (text: string, requireApproval: boolean) => Promise<void>;
   isSending: boolean;
+  activeFlow?: ConversationSession | null;
+  onCancelFlow?: (contactJid: string) => void;
 }
 
 export const ConversationThread: React.FC<ConversationThreadProps> = ({
   activeChat,
   onSendMessage,
-  isSending
+  isSending,
+  activeFlow,
+  onCancelFlow
 }) => {
   const [newMessageText, setNewMessageText] = useState('');
   const [requireApprovalCheck, setRequireApprovalCheck] = useState(false);
@@ -22,6 +26,11 @@ export const ConversationThread: React.FC<ConversationThreadProps> = ({
     if (!newMessageText.trim() || !activeChat) return;
     await onSendMessage(newMessageText, requireApprovalCheck);
     setNewMessageText('');
+  };
+
+  const handleSimulateFlowReply = async (text: string) => {
+    if (!activeChat) return;
+    await onSendMessage(text, false);
   };
 
   const renderPriorityPill = (tier: PriorityTier) => {
@@ -70,6 +79,12 @@ export const ConversationThread: React.FC<ConversationThreadProps> = ({
         </div>
 
         <div className="flex items-center gap-2">
+          {activeFlow && (
+            <span className="inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 border border-amber-300 animate-pulse">
+              <Zap size={13} className="text-amber-600 fill-amber-500" />
+              Flow Active: {activeFlow.currentStep}
+            </span>
+          )}
           <span className="text-xs text-slate-500">Auto-Responder:</span>
           <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full ${
             activeChat.isVIP 
@@ -80,6 +95,49 @@ export const ConversationThread: React.FC<ConversationThreadProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Stateful Multi-Turn Flow Interactive Control Banner */}
+      {activeFlow && (
+        <div className="bg-gradient-to-r from-amber-50 via-orange-50 to-amber-50 border-b border-amber-200 px-6 py-2.5 flex items-center justify-between text-xs text-amber-900 shadow-xs">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-ping" />
+            <span className="font-bold text-amber-950">⚡ Multi-Turn Flow Engine:</span>
+            <span className="bg-white/80 px-2 py-0.5 rounded border border-amber-200 font-medium">
+              {activeFlow.flowName}
+            </span>
+            <span className="text-amber-700">
+              (Awaiting user RSVP response)
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-amber-800 font-semibold">Test Trigger:</span>
+            <button
+              type="button"
+              onClick={() => handleSimulateFlowReply('Yes, definitely coming!')}
+              className="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
+            >
+              <CheckCircle2 size={12} /> Simulate "Yes"
+            </button>
+            <button
+              type="button"
+              onClick={() => handleSimulateFlowReply("Sorry, I can't make it tonight!")}
+              className="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded text-[11px] font-bold flex items-center gap-1 shadow-xs transition-colors"
+            >
+              <XCircle size={12} /> Simulate "No"
+            </button>
+            {onCancelFlow && (
+              <button
+                type="button"
+                onClick={() => onCancelFlow(activeChat.chatId)}
+                className="px-2 py-1 bg-white hover:bg-amber-100 text-amber-800 border border-amber-300 rounded text-[11px] font-medium flex items-center gap-1 transition-colors"
+              >
+                <RotateCcw size={11} /> Cancel Flow
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50/50">
         {activeChat.messages.map((msg: ChatMessage) => {

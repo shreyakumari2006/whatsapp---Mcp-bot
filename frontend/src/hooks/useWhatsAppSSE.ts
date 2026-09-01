@@ -13,8 +13,10 @@ import {
   SEED_MESSAGES, 
   SEED_RULES, 
   SEED_PENDING_APPROVALS, 
-  SEED_AUDIT_LOGS 
+  SEED_AUDIT_LOGS,
+  SEED_ACTIVE_FLOWS
 } from '../data/seedData';
+import type { ConversationSession } from '../types/whatsapp';
 
 export function useWhatsAppSSE(baseUrl = '') {
   const [status, setStatus] = useState<WhatsAppConnectionStatus>('AUTHENTICATED');
@@ -27,6 +29,7 @@ export function useWhatsAppSSE(baseUrl = '') {
   const [rules, setRules] = useState<AutoReplyRule[]>(SEED_RULES);
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>(SEED_PENDING_APPROVALS);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>(SEED_AUDIT_LOGS);
+  const [activeFlows, setActiveFlows] = useState<ConversationSession[]>(SEED_ACTIVE_FLOWS);
   const [analytics, setAnalytics] = useState<TelemetryMetrics>({
     triageDistribution: { CRITICAL: 1, URGENT: 1, VIP: 2, NORMAL: 3, NOISE: 1 },
     avgTriageLatencyMs: 38,
@@ -75,11 +78,40 @@ export function useWhatsAppSSE(baseUrl = '') {
             setRules(data.rules || []);
             setPendingApprovals(data.pendingApprovals || []);
             setAuditLogs(data.auditLogs || []);
+            if (data.activeFlows) {
+              setActiveFlows(data.activeFlows);
+            }
             if (data.analytics) {
               setAnalytics(data.analytics);
             }
             if (data.messages && data.messages.length > 0 && !selectedChatId) {
               setSelectedChatId(data.messages[0].from);
+            }
+            break;
+
+          case 'flow_started':
+          case 'flow_state_change':
+            if (data?.session) {
+              const session = data.session;
+              if (data.action === 'completed' || data.action === 'cancelled') {
+                setActiveFlows((prev) => prev.filter((f) => f.contactJid !== session.contactJid));
+              } else {
+                setActiveFlows((prev) => {
+                  const filtered = prev.filter((f) => f.contactJid !== session.contactJid);
+                  return [...filtered, session];
+                });
+              }
+            } else if (data?.contactJid) {
+              setActiveFlows((prev) => {
+                const filtered = prev.filter((f) => f.contactJid !== data.contactJid);
+                return [...filtered, data];
+              });
+            }
+            break;
+
+          case 'flow_completed':
+            if (data?.contactJid) {
+              setActiveFlows((prev) => prev.filter((f) => f.contactJid !== data.contactJid));
             }
             break;
 
@@ -280,6 +312,19 @@ export function useWhatsAppSSE(baseUrl = '') {
     }
   };
 
+  const cancelFlowSession = async (contactJid: string) => {
+    try {
+      setActiveFlows((prev) => prev.filter((f) => f.contactJid !== contactJid));
+      await fetch(`${baseUrl}/api/flows/sessions/${encodeURIComponent(contactJid)}/reset`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contactJid })
+      });
+    } catch (e) {
+      console.error('Failed to cancel flow session:', e);
+    }
+  };
+
   return {
     status,
     user,
@@ -288,6 +333,7 @@ export function useWhatsAppSSE(baseUrl = '') {
     rules,
     pendingApprovals,
     auditLogs,
+    activeFlows,
     analytics,
     isConnectedSSE,
     lastHeartbeat,
@@ -298,6 +344,7 @@ export function useWhatsAppSSE(baseUrl = '') {
     toggleRule,
     configureRule,
     sendMessage,
-    generateAIDraft
+    generateAIDraft,
+    cancelFlowSession
   };
 }

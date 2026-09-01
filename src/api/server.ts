@@ -38,7 +38,8 @@ export function createApiServer(): express.Express {
       rules: whatsappEngine.getAutoReplyRules('all'),
       pendingApprovals: whatsappEngine.getPendingApprovals(),
       auditLogs: whatsappEngine.getAuditLogs(30),
-      analytics: whatsappEngine.getAnalytics()
+      analytics: whatsappEngine.getAnalytics(),
+      activeFlows: whatsappEngine.getActiveFlowSessions()
     });
 
     // Listeners for all bus events
@@ -51,6 +52,9 @@ export function createApiServer(): express.Express {
     const onStatusChange = (data: any) => sendSSE('status_change', data);
     const onAuditLog = (data: any) => sendSSE('audit_log', data);
     const onAnalytics = (data: any) => sendSSE('analytics_update', data);
+    const onFlowStateChange = (data: any) => sendSSE('flow_state_change', data);
+    const onFlowStarted = (data: any) => sendSSE('flow_started', data);
+    const onFlowCompleted = (data: any) => sendSSE('flow_completed', data);
 
     eventBus.on('qr_generated', onQR);
     eventBus.on('ready', onReady);
@@ -61,6 +65,9 @@ export function createApiServer(): express.Express {
     eventBus.on('status_change', onStatusChange);
     eventBus.on('audit_log', onAuditLog);
     eventBus.on('analytics_update', onAnalytics);
+    eventBus.on('flow_state_change', onFlowStateChange);
+    eventBus.on('flow_started', onFlowStarted);
+    eventBus.on('flow_completed', onFlowCompleted);
 
     req.on('close', () => {
       eventBus.off('qr_generated', onQR);
@@ -72,6 +79,9 @@ export function createApiServer(): express.Express {
       eventBus.off('status_change', onStatusChange);
       eventBus.off('audit_log', onAuditLog);
       eventBus.off('analytics_update', onAnalytics);
+      eventBus.off('flow_state_change', onFlowStateChange);
+      eventBus.off('flow_started', onFlowStarted);
+      eventBus.off('flow_completed', onFlowCompleted);
     });
   });
 
@@ -235,6 +245,19 @@ export function createApiServer(): express.Express {
   // Live Telemetry & Triage Radar Metrics
   app.get('/api/analytics', (req: Request, res: Response) => {
     res.json(whatsappEngine.getAnalytics());
+  });
+
+  // Stateful Multi-Turn Conversation Flows
+  app.get('/api/flows/sessions', (req: Request, res: Response) => {
+    res.json(whatsappEngine.getActiveFlowSessions());
+  });
+
+  app.post(['/api/flows/sessions/:jid/reset', '/api/flows/sessions/reset'], (req: Request, res: Response) => {
+    const rawJid = req.params.jid;
+    const contactJid = (Array.isArray(rawJid) ? rawJid[0] : rawJid) || req.body.contactJid;
+    if (!contactJid) return res.status(400).json({ error: 'Missing contactJid' });
+    const success = whatsappEngine.cancelFlowSession(contactJid);
+    res.json({ success, contactJid });
   });
 
   // Auto-Reply Rules CRUD & Toggle
