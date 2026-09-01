@@ -23,6 +23,7 @@ export default function App() {
     auditLogs,
     activeFlows,
     paymentTargets,
+    analytics,
     selectedChatId,
     setSelectedChatId,
     approveMessage,
@@ -168,6 +169,7 @@ export default function App() {
         isOpen={showAuditDrawer}
         onClose={() => setShowAuditDrawer(false)}
         auditLogs={auditLogs}
+        analytics={analytics}
       />
 
       {/* WHATSAPP DEVICE PAIRING QR MODAL */}

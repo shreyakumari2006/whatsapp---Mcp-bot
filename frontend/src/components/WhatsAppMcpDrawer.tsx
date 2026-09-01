@@ -1,17 +1,19 @@
 import React, { useState } from 'react';
-import { X, Terminal, Cpu } from 'lucide-react';
-import type { AuditLogEntry } from '../types/whatsapp';
+import { X, Terminal, Cpu, Activity, Zap, Bot } from 'lucide-react';
+import type { AuditLogEntry, TelemetryMetrics } from '../types/whatsapp';
 
 interface WhatsAppMcpDrawerProps {
   isOpen: boolean;
   onClose: () => void;
   auditLogs: AuditLogEntry[];
+  analytics?: TelemetryMetrics;
 }
 
 export const WhatsAppMcpDrawer: React.FC<WhatsAppMcpDrawerProps> = ({
   isOpen,
   onClose,
-  auditLogs
+  auditLogs,
+  analytics
 }) => {
   const [filter, setFilter] = useState<'ALL' | 'MCP' | 'TRIAGE' | 'SYSTEM'>('ALL');
 
@@ -53,6 +55,44 @@ export const WhatsAppMcpDrawer: React.FC<WhatsAppMcpDrawerProps> = ({
             <X size={18} />
           </button>
         </div>
+
+        {/* Telemetry Radar Metrics Card (if available) */}
+        {analytics && (
+          <div className="p-3.5 bg-[#182229] border-b border-[#222d34] space-y-2.5">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="font-bold text-[#e9edef] flex items-center gap-1.5">
+                <Activity size={13} className="text-[#00a884]" />
+                Live Engine Radar
+              </span>
+              <span className="text-[#8696a0] font-mono">
+                {analytics.totalMessagesProcessed} msgs processed
+              </span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 text-center text-[10px]">
+              <div className="p-2 rounded-lg bg-[#202c33] border border-[#2a3942]">
+                <span className="text-[#8696a0] block text-[9px]">Latency</span>
+                <span className="text-xs font-bold text-[#00a884] font-mono flex items-center justify-center gap-1">
+                  <Zap size={11} /> {analytics.avgTriageLatencyMs}ms
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-[#202c33] border border-[#2a3942]">
+                <span className="text-[#8696a0] block text-[9px]">Suppression</span>
+                <span className="text-xs font-bold text-sky-400 font-mono flex items-center justify-center gap-1">
+                  <Bot size={11} /> {analytics.botSuppressionRate}%
+                </span>
+              </div>
+
+              <div className="p-2 rounded-lg bg-[#202c33] border border-[#2a3942]">
+                <span className="text-[#8696a0] block text-[9px]">Approvals</span>
+                <span className="text-xs font-bold text-amber-400 font-mono">
+                  {analytics.humanApprovalsPending} pending
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Filter Pills */}
         <div className="px-4 py-2.5 bg-[#182229] flex items-center gap-1.5 border-b border-[#222d34]">
