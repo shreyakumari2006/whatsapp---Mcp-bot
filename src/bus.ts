@@ -94,6 +94,7 @@ export interface TelemetryMetrics {
   totalMessagesProcessed: number;
   automatedRepliesSent: number;
   suppressedCount: number;
+  activeRuleCount?: number;
 }
 
 export interface AIDraftResponse {

@@ -789,7 +789,8 @@ export class WhatsAppEngine {
       humanApprovalsResolved: this.humanApprovalsResolvedCount,
       totalMessagesProcessed: this.messages.length,
       automatedRepliesSent: autoRepliesCount,
-      suppressedCount: this.totalSuppressedMessagesCount
+      suppressedCount: this.totalSuppressedMessagesCount,
+      activeRuleCount: Array.from(this.rules.values()).filter(r => r.enabled).length
     };
   }
 
